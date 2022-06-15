@@ -20,4 +20,4 @@
 # Go workspace file
 go.work
 
-go-ds-motr
+plugin.o
