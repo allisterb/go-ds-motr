@@ -1,4 +1,7 @@
 /*
+ * Based on: https://github.com/Seagate/cortx-motr/blob/main/bindings/go/mkv/mkv.go
+ * mkv.go has the following copyright notice:
+ *
  * Copyright (c) 2021 Seagate Technology LLC and/or its Affiliates
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +32,7 @@ import (
 	"os"
 
 	"github.com/allisterb/go-ds-motr/mio"
+	"github.com/mbndr/figlet4go"
 )
 
 func usage() {
@@ -79,6 +83,11 @@ func init() {
 }
 
 func main() {
+	ascii := figlet4go.NewAsciiRender()
+	// The underscore would be an error
+	renderStr, _ := ascii.Render("Go-Ds-Motr")
+	fmt.Print(renderStr)
+
 	flag.Parse()
 	if flag.NArg() != 2 && flag.NArg() != 3 {
 		usage()

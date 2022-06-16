@@ -6,6 +6,7 @@ require (
 	github.com/ipfs/go-datastore v0.5.1
 	github.com/ipfs/go-ipfs v0.13.0
 	github.com/ipfs/go-log/v2 v2.5.1
+	github.com/mbndr/figlet4go v0.0.0-20190224160619-d6cef5b186ea
 )
 
 require (
