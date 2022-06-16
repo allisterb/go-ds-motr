@@ -28,21 +28,18 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 
-	"github.com/allisterb/go-ds-motr/mio"
+	logging "github.com/ipfs/go-log/v2"
 	"github.com/mbndr/figlet4go"
+
+	"github.com/allisterb/go-ds-motr/mio"
 )
 
+var log = logging.Logger("Go-Ds-Motr CLI")
+
 func usage() {
-	fmt.Fprintf(flag.CommandLine.Output(),
-		`Usage: %s [options] index_id key [value]
-
- With value present it will be PUT operation.
- Without value it will be GET operation.
-
-`, os.Args[0])
+	log.Errorf("Usage: %s [options] index_id key [value].\nWith [value] present it will be PUT operation, without value it will be GET operation.\nPrinting usage...", os.Args[0])
 	flag.PrintDefaults()
 }
 
@@ -58,15 +55,13 @@ var threadsN int
 
 func checkArg(arg *string, name string) {
 	if *arg == "" {
-		log.Printf("%s: %s must be specified\n\n", os.Args[0], name)
+		log.Errorf("%s: %s must be specified\n\n", os.Args[0], name)
 		flag.Usage()
 		os.Exit(1)
 	}
 }
 
 func init() {
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-	flag.Usage = usage
 	flag.StringVar(&localEP, "ep", "", "local `endpoint` address")
 	flag.StringVar(&haxEP, "hax", "", "hax `endpoint` address")
 	flag.StringVar(&profile, "prof", "", "cluster profile `fid`")
@@ -78,6 +73,8 @@ func init() {
 	// Optional
 	flag.BoolVar(&traceOn, "trace", false, "generate m0trace.pid file")
 	flag.IntVar(&threadsN, "threads", 1, "`number` of threads to use")
+
+	flag.Usage = usage
 }
 
 func main() {
@@ -102,6 +99,7 @@ func main() {
 	checkArg(&haxEP, "hax endpoint (-hax)")
 	checkArg(&profile, "cluster profile fid (-prof)")
 	checkArg(&procFid, "local process fid (-proc)")
+
 	indexID := flag.Arg(0)
 
 	mio.Init(&localEP, &haxEP, &profile, &procFid, threadsN, traceOn)
@@ -114,7 +112,7 @@ func main() {
 
 	if flag.NArg() == 3 {
 		if deleteFlag {
-			log.Printf("cannot delete and put at the same time")
+			log.Errorf("cannot delete and put at the same time")
 			usage()
 			os.Exit(1)
 		}
