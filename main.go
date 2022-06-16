@@ -42,26 +42,55 @@ func usage() {
 	flag.PrintDefaults()
 }
 
+var localEP string
+var haxEP string
+var profile string
+var procFid string
 var createFlag bool
 var updateFlag bool
 var deleteFlag bool
+var traceOn bool
+var verbose bool
+var threadsN int
+
+func checkArg(arg *string, name string) {
+	if *arg == "" {
+		fmt.Printf("%s: %s must be specified\n\n", os.Args[0], name)
+		flag.Usage()
+		os.Exit(1)
+	}
+}
 
 func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	flag.Usage = usage
+	flag.StringVar(&localEP, "ep", "", "local `endpoint` address")
+	flag.StringVar(&haxEP, "hax", "", "hax `endpoint` address")
+	flag.StringVar(&profile, "prof", "", "cluster profile `fid`")
+	flag.StringVar(&procFid, "proc", "", "local process `fid`")
 	flag.BoolVar(&createFlag, "c", false, "create index if not present")
 	flag.BoolVar(&updateFlag, "u", false, "update value at the existing key")
 	flag.BoolVar(&deleteFlag, "d", false, "delete the record by the key")
+
+	// Optional
+	flag.BoolVar(&traceOn, "trace", false, "generate m0trace.pid file")
+	flag.BoolVar(&verbose, "v", false, "be more verbose")
+	flag.IntVar(&threadsN, "threads", 1, "`number` of threads to use")
 }
 
 func main() {
-	mio.Init()
+	flag.Parse()
 	if flag.NArg() != 2 && flag.NArg() != 3 {
 		usage()
 		os.Exit(1)
 	}
-
+	checkArg(&localEP, "local endpoint")
+	checkArg(&haxEP, "hax endpoint")
+	checkArg(&profile, "cluster profile fid")
+	checkArg(&procFid, "local process fid")
 	indexID := flag.Arg(0)
+
+	mio.InitLib(&localEP, &haxEP, &profile, &procFid, threadsN, traceOn)
 
 	var mkv mio.Mkv
 	if err := mkv.Open(indexID, createFlag); err != nil {
