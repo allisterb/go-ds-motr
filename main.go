@@ -54,12 +54,11 @@ var createFlag bool
 var updateFlag bool
 var deleteFlag bool
 var traceOn bool
-var verbose bool
 var threadsN int
 
 func checkArg(arg *string, name string) {
 	if *arg == "" {
-		fmt.Printf("%s: %s must be specified\n\n", os.Args[0], name)
+		log.Printf("%s: %s must be specified\n\n", os.Args[0], name)
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -78,14 +77,20 @@ func init() {
 
 	// Optional
 	flag.BoolVar(&traceOn, "trace", false, "generate m0trace.pid file")
-	flag.BoolVar(&verbose, "v", false, "be more verbose")
 	flag.IntVar(&threadsN, "threads", 1, "`number` of threads to use")
 }
 
 func main() {
 	ascii := figlet4go.NewAsciiRender()
+	options := figlet4go.NewRenderOptions()
+	options.FontColor = []figlet4go.Color{
+		// Colors can be given by default ansi color codes...
+		figlet4go.ColorGreen,
+		figlet4go.ColorYellow,
+		figlet4go.ColorCyan,
+	}
 	// The underscore would be an error
-	renderStr, _ := ascii.Render("Go-Ds-Motr")
+	renderStr, _ := ascii.RenderOpts("Go-Ds-Motr", options)
 	fmt.Print(renderStr)
 
 	flag.Parse()
@@ -93,13 +98,13 @@ func main() {
 		usage()
 		os.Exit(1)
 	}
-	checkArg(&localEP, "local endpoint")
-	checkArg(&haxEP, "hax endpoint")
-	checkArg(&profile, "cluster profile fid")
-	checkArg(&procFid, "local process fid")
+	checkArg(&localEP, "local endpoint (-ep)")
+	checkArg(&haxEP, "hax endpoint (-hax)")
+	checkArg(&profile, "cluster profile fid (-prof)")
+	checkArg(&procFid, "local process fid (-proc)")
 	indexID := flag.Arg(0)
 
-	mio.InitLib(&localEP, &haxEP, &profile, &procFid, threadsN, traceOn)
+	mio.Init(&localEP, &haxEP, &profile, &procFid, threadsN, traceOn)
 
 	var mkv mio.Mkv
 	if err := mkv.Open(indexID, createFlag); err != nil {

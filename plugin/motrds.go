@@ -21,10 +21,9 @@ type Config struct {
 }
 
 func NewMotrDatastore(conf Config) (*Motr, error) {
-	if rinit, e := mio.InitLib(&conf.LocalAddr, &conf.HaxAddr, &conf.ProfileFid, &conf.LocalProcessFid, conf.Threads, conf.EnableTrace); !rinit {
+	if rinit, e := mio.Init(&conf.LocalAddr, &conf.HaxAddr, &conf.ProfileFid, &conf.LocalProcessFid, conf.Threads, conf.EnableTrace); !rinit {
 		return nil, e
 	}
 	var mkv mio.Mkv
 	return &Motr{conf, mkv}, nil
-
 }

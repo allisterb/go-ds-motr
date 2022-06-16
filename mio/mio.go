@@ -1,4 +1,7 @@
 /*
+ * Based on: https://github.com/Seagate/cortx-motr/blob/main/bindings/go/mio/mio.go
+ * mio.go has the following copyright notice:
+ *
  * Copyright (c) 2020 Seagate Technology LLC and/or its Affiliates
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -122,7 +125,7 @@ var verbose bool
 var threadsN int
 
 // initialises mio module.
-func InitLib(localEP *string, haxEP *string, profile *string, procFid *string, threads int, enableTrace bool) (bool, error) {
+func Init(localEP *string, haxEP *string, profile *string, procFid *string, threads int, enableTrace bool) (bool, error) {
 
 	if localEP == nil {
 		return false, fmt.Errorf("%s must be specified", "localEP")
