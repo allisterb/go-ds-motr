@@ -9,8 +9,8 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${fileDirname}",
-            "args": ["-ep", "inet:tcp:192.168.1.161@22501", "-hax", "inet:tcp:192.168.1.161@22001", "-proc", "0x7200000000000001:0x3",  "-prof", "0x7000000000000001:0x0", "0x7800000000000123:0x123456789", "foo"]
+            "program": "main.go",
+            "args": ["oid", "foo", "-P"]
         }
     ]
 }

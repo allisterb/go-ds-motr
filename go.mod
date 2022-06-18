@@ -10,6 +10,7 @@ require (
 )
 
 require (
+	github.com/alecthomas/kong v0.6.1
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/jbenet/goprocess v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect

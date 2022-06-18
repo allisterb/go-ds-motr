@@ -1,7 +1,9 @@
 /*
  * Based on: https://github.com/Seagate/cortx-motr/blob/main/bindings/go/mkv/mkv.go
  * mkv.go has the following copyright notice:
- *
+ /
+
+/*
  * Copyright (c) 2021 Seagate Technology LLC and/or its Affiliates
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +23,7 @@
  *
  * Original author: Andriy Tkachuk <andriy.tkachuk@seagate.com>
  * Original creation date: 28-Apr-2021
- */
+*/
 
 package main
 
@@ -29,19 +31,27 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/alecthomas/kong"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/mbndr/figlet4go"
 
-	"github.com/allisterb/go-ds-motr/mio"
+	"github.com/allisterb/go-ds-motr/uint128"
 )
 
-var log = logging.Logger("Go-Ds-Motr CLI")
-
-func usage() {
-	log.Errorf("Usage: %s [options] index_id key [value].\nWith [value] present it will be PUT operation, without value it will be GET operation.\nPrinting usage...", os.Args[0])
-	flag.PrintDefaults()
+type OidCmd struct {
+	Name  string `arg:"" name:"name" help:"Object id or key name to generate 128-bit object id for."`
+	Parse bool   `help:"Parse name as 128-bit object id." short:"P"`
 }
+
+// Command-line arguments
+var CLI struct {
+	Debug bool   `help:"Enable debug mode."`
+	Oid   OidCmd `cmd:"" help:"Generate or parse Motr object id."`
+}
+
+var log = logging.Logger("Go-Ds-Motr CLI")
 
 var localEP string
 var haxEP string
@@ -52,6 +62,11 @@ var updateFlag bool
 var deleteFlag bool
 var traceOn bool
 var threadsN int
+
+func usage() {
+	log.Errorf("Usage: go-ds-motr [options] index_id key [value].\nWith [value] present it will be PUT operation, without value it will be GET operation.\nPrinting usage...")
+	flag.PrintDefaults()
+}
 
 func checkArg(arg *string, name string) {
 	if *arg == "" {
@@ -89,51 +104,29 @@ func main() {
 	// The underscore would be an error
 	renderStr, _ := ascii.RenderOpts("Go-Ds-Motr", options)
 	fmt.Print(renderStr)
+	ctx := kong.Parse(&CLI)
+	err := ctx.Run(&kong.Context{})
+	ctx.FatalIfErrorf(err)
 
-	flag.Parse()
-	if flag.NArg() != 2 && flag.NArg() != 3 {
-		usage()
-		os.Exit(1)
-	}
-	checkArg(&localEP, "local endpoint (-ep)")
-	checkArg(&haxEP, "hax endpoint (-hax)")
-	checkArg(&profile, "cluster profile fid (-prof)")
-	checkArg(&procFid, "local process fid (-proc)")
+}
 
-	indexID := flag.Arg(0)
-
-	mio.Init(&localEP, &haxEP, &profile, &procFid, threadsN, traceOn)
-
-	var mkv mio.Mkv
-	if err := mkv.Open(indexID, createFlag); err != nil {
-		log.Fatalf("failed to open index %v: %v", indexID, err)
-	}
-	defer mkv.Close()
-
-	if flag.NArg() == 3 {
-		if deleteFlag {
-			log.Errorf("cannot delete and put at the same time")
-			usage()
-			os.Exit(1)
+func (l *OidCmd) Run(ctx *kong.Context) error {
+	if l.Parse {
+		oid := l.Name
+		if strings.Contains(oid, "0x") {
+			oid = strings.ReplaceAll(oid, "0x", "")
 		}
-		err := mkv.Put([]byte(flag.Arg(1)), []byte(flag.Arg(2)), updateFlag)
-		if err != nil {
-			log.Fatalf("failed to put: %v", err)
+		if strings.Contains(oid, ":") {
+			oid = strings.ReplaceAll(oid, ":", "")
 		}
-	} else {
-		if deleteFlag {
-			err := mkv.Delete([]byte(flag.Arg(1)))
-			if err != nil {
-				log.Fatalf("failed to delete: %v", err)
-			}
+		if oid128, err := uint128.FromString(oid); err == nil {
+			log.Infof("128-bit OID is Hi: 0x%x Lo: 0x%x", oid128.Hi, oid128.Lo)
 		} else {
-			value, err := mkv.Get([]byte(flag.Arg(1)))
-			if err != nil {
-				log.Fatalf("failed to get: %v", err)
-			}
-			fmt.Printf("%s\n", value)
+
+			log.Errorf("%w", err)
 		}
 	}
+	return nil
 }
 
 // vi: sw=4 ts=4 expandtab ai
