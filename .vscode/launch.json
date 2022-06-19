@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "main.go",
-            "args": ["oid", "123:456", "-P"]
+            "args": ["oid", "123:456", "-P", "--debug"]
         }
     ]
 }

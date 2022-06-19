@@ -52,8 +52,7 @@ var CLI struct {
 	Oid   OidCmd `cmd:"" help:"Generate or parse Motr object id."`
 }
 
-var log = logging.Logger("Go-Ds-Motr CLI")
-
+var log = logging.Logger("CLI")
 var localEP string
 var haxEP string
 var profile string
@@ -78,6 +77,7 @@ func checkArg(arg *string, name string) {
 }
 
 func init() {
+	logging.SetAllLoggers(logging.LevelInfo)
 	flag.StringVar(&localEP, "ep", "", "local `endpoint` address")
 	flag.StringVar(&haxEP, "hax", "", "hax `endpoint` address")
 	flag.StringVar(&profile, "prof", "", "cluster profile `fid`")
@@ -106,45 +106,62 @@ func main() {
 	renderStr, _ := ascii.RenderOpts("Go-Ds-Motr", options)
 	fmt.Print(renderStr)
 	ctx := kong.Parse(&CLI)
-	err := ctx.Run(&kong.Context{})
-	ctx.FatalIfErrorf(err)
-
+	if contains(ctx.Args, "--debug") {
+		logging.SetAllLoggers(logging.LevelInfo)
+		log.Info("Debug mode enabled.")
+	}
+	ctx.FatalIfErrorf(ctx.Run(&kong.Context{}))
 }
 
 func (l *OidCmd) Run(ctx *kong.Context) error {
-	var oid uint128.Uint128
-	var _err error
+
 	if l.Parse {
-		if strings.Contains(l.Name, ":") {
-			var _lo, _hi uint64
-			a := strings.Split(l.Name, ":")
-			hi := a[0]
-			lo := a[1]
-			if strings.Contains(lo, "0x") {
-				lo = strings.ReplaceAll(lo, "0x", "")
-			}
-			if _lo, _err = strconv.ParseUint(lo, 10, 64); _err != nil {
-				log.Fatalf("Could not parse low id %s as uint64: %w.", lo, _err)
-			}
-			if strings.Contains(hi, "0x") {
-				hi = strings.ReplaceAll(hi, "0x", "")
-			}
-			if _hi, _err = strconv.ParseUint(hi, 10, 64); _err != nil {
-				log.Fatalf("Could not parse hi id %s as uint64: %w.", hi, _err)
-			}
-			oid = uint128.FromInts(_hi, _lo)
-		} else {
-			name := l.Name
-			if strings.Contains(name, "0x") {
-				name = strings.ReplaceAll(name, "0x", "")
-			}
-			if oid, _err = uint128.FromString(name); _err != nil {
-				log.Fatalf("Could not parse name %s as uint128: %w.", name, _err)
-			}
-		}
-		fmt.Printf("128-bit OID is 0x%x:0x%x\n", oid.Hi, oid.Lo)
+		ParseOID(l.Name)
+
 	}
 	return nil
+}
+
+func ParseOID(id string) {
+	var oid uint128.Uint128
+	var _err error
+	if strings.Contains(id, ":") {
+		var _lo, _hi uint64
+		a := strings.Split(id, ":")
+		hi := a[0]
+		lo := a[1]
+		if strings.Contains(lo, "0x") {
+			lo = strings.ReplaceAll(lo, "0x", "")
+		}
+		if _lo, _err = strconv.ParseUint(lo, 10, 64); _err != nil {
+			log.Fatalf("Could not parse low id %s as uint64: %w.", lo, _err)
+		}
+		if strings.Contains(hi, "0x") {
+			hi = strings.ReplaceAll(hi, "0x", "")
+		}
+		if _hi, _err = strconv.ParseUint(hi, 10, 64); _err != nil {
+			log.Fatalf("Could not parse hi id %s as uint64: %w.", hi, _err)
+		}
+		oid = uint128.FromInts(_hi, _lo)
+	} else {
+		name := id
+		if strings.Contains(name, "0x") {
+			name = strings.ReplaceAll(name, "0x", "")
+		}
+		if oid, _err = uint128.FromString(name); _err != nil {
+			log.Fatalf("Could not parse name %s as uint128: %s.", name, _err)
+		}
+	}
+	log.Infof("128-bit OID is 0x%x:0x%x\n", oid.Hi, oid.Lo)
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
 
 // vi: sw=4 ts=4 expandtab ai
