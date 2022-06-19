@@ -5,12 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Package",
+            "name": "Launch CLI",
             "type": "go",
             "request": "launch",
             "mode": "auto",
             "program": "main.go",
-            "args": ["oid", "foo", "-P"]
+            "args": ["oid", "123:456", "-P"]
         }
     ]
 }

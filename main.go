@@ -31,6 +31,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -111,20 +112,37 @@ func main() {
 }
 
 func (l *OidCmd) Run(ctx *kong.Context) error {
+	var oid uint128.Uint128
+	var _err error
 	if l.Parse {
-		oid := l.Name
-		if strings.Contains(oid, "0x") {
-			oid = strings.ReplaceAll(oid, "0x", "")
-		}
-		if strings.Contains(oid, ":") {
-			oid = strings.ReplaceAll(oid, ":", "")
-		}
-		if oid128, err := uint128.FromString(oid); err == nil {
-			log.Infof("128-bit OID is Hi: 0x%x Lo: 0x%x", oid128.Hi, oid128.Lo)
+		if strings.Contains(l.Name, ":") {
+			var _lo, _hi uint64
+			a := strings.Split(l.Name, ":")
+			hi := a[0]
+			lo := a[1]
+			if strings.Contains(lo, "0x") {
+				lo = strings.ReplaceAll(lo, "0x", "")
+			}
+			if _lo, _err = strconv.ParseUint(lo, 10, 64); _err != nil {
+				log.Fatalf("Could not parse low id %s as uint64: %w.", lo, _err)
+			}
+			if strings.Contains(hi, "0x") {
+				hi = strings.ReplaceAll(hi, "0x", "")
+			}
+			if _hi, _err = strconv.ParseUint(hi, 10, 64); _err != nil {
+				log.Fatalf("Could not parse hi id %s as uint64: %w.", hi, _err)
+			}
+			oid = uint128.FromInts(_hi, _lo)
 		} else {
-
-			log.Errorf("%w", err)
+			name := l.Name
+			if strings.Contains(name, "0x") {
+				name = strings.ReplaceAll(name, "0x", "")
+			}
+			if oid, _err = uint128.FromString(name); _err != nil {
+				log.Fatalf("Could not parse name %s as uint128: %w.", name, _err)
+			}
 		}
+		fmt.Printf("128-bit OID is 0x%x:0x%x\n", oid.Hi, oid.Lo)
 	}
 	return nil
 }
