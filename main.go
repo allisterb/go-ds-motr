@@ -30,6 +30,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"hash/fnv"
 	"os"
 	"strconv"
 	"strings"
@@ -116,42 +117,54 @@ func main() {
 func (l *OidCmd) Run(ctx *kong.Context) error {
 
 	if l.Parse {
-		ParseOID(l.Name)
+		parseOID(l.Name)
 
+	} else {
+		createOID(l.Name)
 	}
 	return nil
 }
 
-func ParseOID(id string) {
+func parseOID(id string) {
+	var _lo, _hi uint64
 	var oid uint128.Uint128
 	var _err error
-	if strings.Contains(id, ":") {
-		var _lo, _hi uint64
-		a := strings.Split(id, ":")
-		hi := a[0]
-		lo := a[1]
-		if strings.Contains(lo, "0x") {
-			lo = strings.ReplaceAll(lo, "0x", "")
+	if !strings.Contains(id, ":") {
+		log.Fatalf("128-bit OID must be specified as <hi addr>:<lo addr>")
+	}
+	a := strings.Split(id, ":")
+	hi := a[0]
+	lo := a[1]
+	if strings.Contains(hi, "0x") {
+		log.Infof("Parsing hi addr as hexadecimal...")
+		if _hi, _err = strconv.ParseUint(strings.ReplaceAll(hi, "0x", ""), 16, 64); _err != nil {
+			log.Fatalf("Could not parse hi id %s as uint64: %s.", hi, _err)
 		}
-		if _lo, _err = strconv.ParseUint(lo, 10, 64); _err != nil {
-			log.Fatalf("Could not parse low id %s as uint64: %w.", lo, _err)
-		}
-		if strings.Contains(hi, "0x") {
-			hi = strings.ReplaceAll(hi, "0x", "")
-		}
-		if _hi, _err = strconv.ParseUint(hi, 10, 64); _err != nil {
-			log.Fatalf("Could not parse hi id %s as uint64: %w.", hi, _err)
-		}
-		oid = uint128.FromInts(_hi, _lo)
 	} else {
-		name := id
-		if strings.Contains(name, "0x") {
-			name = strings.ReplaceAll(name, "0x", "")
-		}
-		if oid, _err = uint128.FromString(name); _err != nil {
-			log.Fatalf("Could not parse name %s as uint128: %s.", name, _err)
+		log.Infof("Parsing hi addr as decimal...")
+		if _hi, _err = strconv.ParseUint(hi, 10, 64); _err != nil {
+			log.Fatalf("Could not parse hi id %s as uint64: %s.", hi, _err)
 		}
 	}
+	if strings.Contains(lo, "0x") {
+		log.Infof("Parsing lo addr as hexadecimal...")
+		if _lo, _err = strconv.ParseUint(strings.ReplaceAll(lo, "0x", ""), 16, 64); _err != nil {
+			log.Fatalf("Could not parse lo id %s as uint64: %s.", lo, _err)
+		}
+	} else {
+		log.Infof("Parsing lo addr as decimal...")
+		if _lo, _err = strconv.ParseUint(lo, 10, 64); _err != nil {
+			log.Fatalf("Could not parse lo id %s as uint64: %s.", lo, _err)
+		}
+	}
+	oid = uint128.FromInts(_hi, _lo)
+	log.Infof("128-bit OID is 0x%x:0x%x\n", oid.Hi, oid.Lo)
+}
+
+func createOID(name string) {
+	log.Infof("Creating 128-bit OID for key name %s usng FNV-1 hash...")
+	h := fnv.New128()
+	oid := uint128.FromBytes(h.Sum([]byte(name)))
 	log.Infof("128-bit OID is 0x%x:0x%x\n", oid.Hi, oid.Lo)
 }
 
