@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "main.go",
-            "args": ["oid", "123:456", "-P", "--debug"]
+            "args": ["store", "-L", "inet:tcp:192.168.1.161@22501", "-H", "inet:tcp:192.168.1.161@22001", "-C", "0x7000000000000001:0x0", "-P", "0x7200000000000001:0x3", "kk"]
         }
     ]
 }

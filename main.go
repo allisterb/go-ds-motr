@@ -47,10 +47,23 @@ type OidCmd struct {
 	Parse bool   `help:"Parse name as 128-bit object id." short:"P"`
 }
 
+type StoreCmd struct {
+	LocalEP    string `required:"" name:"local" short:"L" help:"Motr local endpoint address."`
+	HaxEP      string `required:"" name:"hax" short:"H" help:"Motr local endpoint address."`
+	ProfileFid string `required:"" name:"profile" short:"C" help:"Cluster profile fid."`
+	ProcessFid string `required:"" name:"process" short:"P" help:"Local process fid."`
+	Key        string `arg:"" name:"key" required:"" help:"Key name."`
+	Value      string `arg:"" default:"" name:"key" help:"Value to store, or omit to retrieve the value stored at this key."`
+	Delete     bool   `help:"Delete object identified by this key." short:"d"`
+	Update     bool   `help:"Update object identified by this key with a new value." short:"u"`
+	File       bool   `help:"Update object identified by this key with a new value." short:"f"`
+}
+
 // Command-line arguments
 var CLI struct {
-	Debug bool   `help:"Enable debug mode."`
-	Oid   OidCmd `cmd:"" help:"Generate or parse Motr object id."`
+	Debug bool     `help:"Enable debug mode."`
+	Oid   OidCmd   `cmd:"" help:"Generate or parse Motr object id."`
+	Store StoreCmd `cmd:"" help:"Store an object in the Motr key-value store."`
 }
 
 var log = logging.Logger("CLI")
@@ -98,12 +111,10 @@ func main() {
 	ascii := figlet4go.NewAsciiRender()
 	options := figlet4go.NewRenderOptions()
 	options.FontColor = []figlet4go.Color{
-		// Colors can be given by default ansi color codes...
 		figlet4go.ColorGreen,
 		figlet4go.ColorYellow,
 		figlet4go.ColorCyan,
 	}
-	// The underscore would be an error
 	renderStr, _ := ascii.RenderOpts("Go-Ds-Motr", options)
 	fmt.Print(renderStr)
 	ctx := kong.Parse(&CLI)
@@ -118,9 +129,25 @@ func (l *OidCmd) Run(ctx *kong.Context) error {
 
 	if l.Parse {
 		parseOID(l.Name)
-
 	} else {
 		createOID(l.Name)
+	}
+	return nil
+}
+
+func (s *StoreCmd) Run(ctx *kong.Context) error {
+	if s.Value == "" {
+		if s.Delete {
+			deleteObject(s.Key)
+		} else {
+			selectObject(s.Key)
+		}
+	} else {
+		if s.Update {
+			updateObject(s.Key, []byte(s.Value))
+		} else {
+			createObject(s.Key, []byte(s.Value))
+		}
 	}
 	return nil
 }
@@ -166,6 +193,19 @@ func createOID(name string) {
 	h := fnv.New128()
 	oid := uint128.FromBytes(h.Sum([]byte(name)))
 	log.Infof("128-bit OID is 0x%x:0x%x\n", oid.Hi, oid.Lo)
+}
+
+func selectObject(key string) {
+
+}
+func createObject(name string, data []byte) {
+
+}
+func updateObject(name string, data []byte) {
+
+}
+func deleteObject(name string) {
+
 }
 
 func contains(s []string, e string) bool {
