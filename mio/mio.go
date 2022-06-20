@@ -90,11 +90,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"reflect"
 	"sync"
 	"time"
 	"unsafe"
+
+	logging "github.com/ipfs/go-log/v2"
 )
 
 // Mio implements io.Reader / io.Writer interfaces for Motr.
@@ -120,6 +121,8 @@ type iov struct {
 	ch     chan slot
 	wg     sync.WaitGroup
 }
+
+var log = logging.Logger("mio")
 
 var verbose bool
 var threadsN int
@@ -548,7 +551,7 @@ func (mio *Mio) write(p []byte, off *int64) (n int, err error) {
 	if verbose && err == nil {
 		elapsed := time.Now().Sub(start)
 		bw, units := getBW(n, elapsed)
-		log.Printf("W: off=%v len=%v bs=%v gs=%v speed=%v (%v)",
+		log.Infof("W: off=%v len=%v bs=%v gs=%v speed=%v (%v)",
 			offSaved, n, bsSaved, gs, bw, units)
 	}
 
@@ -630,7 +633,7 @@ func (mio *Mio) read(p []byte, off *int64) (n int, err error) {
 	if verbose && err == nil {
 		elapsed := time.Now().Sub(start)
 		bw, units := getBW(n, elapsed)
-		log.Printf("R: off=%v len=%v bs=%v gs=%v speed=%v (%v)",
+		log.Infof("R: off=%v len=%v bs=%v gs=%v speed=%v (%v)",
 			offSaved, n, bsSaved, gs, bw, units)
 	}
 

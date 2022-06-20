@@ -1,37 +1,8 @@
-/*
- * Based on: https://github.com/Seagate/cortx-motr/blob/main/bindings/go/mkv/mkv.go
- * mkv.go has the following copyright notice:
- /
-
-/*
- * Copyright (c) 2021 Seagate Technology LLC and/or its Affiliates
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * For any questions about this software or licensing,
- * please email opensource@seagate.com or cortx-questions@seagate.com.
- *
- * Original author: Andriy Tkachuk <andriy.tkachuk@seagate.com>
- * Original creation date: 28-Apr-2021
-*/
-
 package main
 
 import (
-	"flag"
 	"fmt"
 	"hash/fnv"
-	"os"
 	"strconv"
 	"strings"
 
@@ -48,6 +19,11 @@ type OidCmd struct {
 	Parse bool   `help:"Parse name as 128-bit object id." short:"P"`
 }
 
+type IdxCmd struct {
+	Name   string `arg:"" name:"name" help:"Name of index to create."`
+	Delete bool   `help:"Parse name as 128-bit object id." short:"P"`
+}
+
 type StoreCmd struct {
 	LocalEP    string `required:"" name:"local" short:"L" help:"Motr local endpoint address."`
 	HaxEP      string `required:"" name:"hax" short:"H" help:"Motr local endpoint address."`
@@ -61,6 +37,9 @@ type StoreCmd struct {
 	File       bool   `help:"Update object identified by this key with a new value." short:"f"`
 }
 
+var log = logging.Logger("CLI")
+var hash128 = fnv.New128()
+
 // Command-line arguments
 var CLI struct {
 	Debug bool     `help:"Enable debug mode."`
@@ -68,45 +47,8 @@ var CLI struct {
 	Store StoreCmd `cmd:"" help:"Store an object in the Motr key-value store."`
 }
 
-var log = logging.Logger("CLI")
-var localEP string
-var haxEP string
-var profile string
-var procFid string
-var createFlag bool
-var updateFlag bool
-var deleteFlag bool
-var traceOn bool
-var threadsN int
-
-func usage() {
-	log.Errorf("Usage: go-ds-motr [options] index_id key [value].\nWith [value] present it will be PUT operation, without value it will be GET operation.\nPrinting usage...")
-	flag.PrintDefaults()
-}
-
-func checkArg(arg *string, name string) {
-	if *arg == "" {
-		log.Errorf("%s: %s must be specified\n\n", os.Args[0], name)
-		flag.Usage()
-		os.Exit(1)
-	}
-}
-
 func init() {
 	logging.SetAllLoggers(logging.LevelInfo)
-	flag.StringVar(&localEP, "ep", "", "local `endpoint` address")
-	flag.StringVar(&haxEP, "hax", "", "hax `endpoint` address")
-	flag.StringVar(&profile, "prof", "", "cluster profile `fid`")
-	flag.StringVar(&procFid, "proc", "", "local process `fid`")
-	flag.BoolVar(&createFlag, "c", false, "create index if not present")
-	flag.BoolVar(&updateFlag, "u", false, "update value at the existing key")
-	flag.BoolVar(&deleteFlag, "d", false, "delete the record by the key")
-
-	// Optional
-	flag.BoolVar(&traceOn, "trace", false, "generate m0trace.pid file")
-	flag.IntVar(&threadsN, "threads", 1, "`number` of threads to use")
-
-	flag.Usage = usage
 }
 
 func main() {
@@ -128,7 +70,6 @@ func main() {
 }
 
 func (l *OidCmd) Run(ctx *kong.Context) error {
-
 	if l.Parse {
 		parseOID(l.Name)
 	} else {
@@ -150,11 +91,7 @@ func (s *StoreCmd) Run(ctx *kong.Context) error {
 			selectObject(s.Idx, s.Key)
 		}
 	} else {
-		if s.Update {
-			updateObject(s.Idx, s.Key, []byte(s.Value))
-		} else {
-			createObject(s.Idx, s.Key, []byte(s.Value))
-		}
+		createObject(s.Idx, s.Key, []byte(s.Value), s.Update)
 	}
 	return nil
 }
@@ -197,17 +134,25 @@ func parseOID(id string) {
 
 func createOID(name string) {
 	log.Infof("Creating 128-bit OID for key name %s usng FNV-1 hash...")
-	h := fnv.New128()
-	oid := uint128.FromBytes(h.Sum([]byte(name)))
+
+	oid := uint128.FromBytes(hash128.Sum([]byte(name)))
 	log.Infof("128-bit OID is 0x%x:0x%x\n", oid.Hi, oid.Lo)
 }
 
-func createObject(idx string, name string, data []byte) {
+func createObject(idx string, key string, data []byte, update bool) {
+	var mkv mio.Mkv
+	log.Info("Initialized Motr key-value access.")
+	if err := mkv.Open(idx, false); err != nil {
+		log.Fatalf("failed to open index %v: %v", idx, err)
+	} else {
+		log.Infof("Initialized Motr key-value index %s.", idx)
+	}
+	if pget := mkv.Put(hash128.Sum(hash128.Sum([]byte(key))), data, update); pget != nil {
+		log.Errorf("Error putting object at key %s in index %s: %s.", key, idx, pget)
+	} else {
+		log.Infof("Put object at key %s in index %s", key, idx)
 
-}
-
-func updateObject(idx string, name string, data []byte) {
-
+	}
 }
 
 func deleteObject(idx string, name string) {
@@ -216,11 +161,20 @@ func deleteObject(idx string, name string) {
 
 func selectObject(idx string, key string) {
 	var mkv mio.Mkv
-	log.Info("initialized Motr key-value store access.")
+	log.Info("initialized Motr key-value access.")
 	if err := mkv.Open(idx, false); err != nil {
 		log.Fatalf("failed to open index %v: %v", idx, err)
+	} else {
+		log.Infof("initialized Motr key-value index %s.", idx)
 	}
+	oid := hash128.Sum(hash128.Sum([]byte(key)))
+	oid128 := uint128.FromBytes(oid)
+	if r, eget := mkv.Get(oid); eget != nil {
+		log.Errorf("Error retrieving key %s: %s.", key, eget)
+	} else {
+		log.Infof("Key %s in index %s has oid: 0x%x:0x%x, value: %s.", key, idx, oid128.Hi, oid128.Lo, string(r))
 
+	}
 }
 func contains(s []string, e string) bool {
 	for _, a := range s {
