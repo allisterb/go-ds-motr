@@ -141,28 +141,28 @@ func createOID(name string) {
 
 func createObject(idx string, key string, data []byte, update bool) {
 	var mkv mio.Mkv
-	log.Info("Initialized Motr key-value access.")
 	if err := mkv.Open(idx, false); err != nil {
 		log.Fatalf("failed to open index %v: %v", idx, err)
 	} else {
 		log.Infof("Initialized Motr key-value index %s.", idx)
 	}
+	defer mkv.Close()
 	if pget := mkv.Put(hash128.Sum(hash128.Sum([]byte(key))), data, update); pget != nil {
 		log.Errorf("Error putting object at key %s in index %s: %s.", key, idx, pget)
 	} else {
 		log.Infof("Put object at key %s in index %s", key, idx)
-
 	}
+	mkv.Close()
 }
 
 func deleteObject(idx string, key string) {
 	var mkv mio.Mkv
-	log.Info("initialized Motr key-value access.")
 	if err := mkv.Open(idx, false); err != nil {
 		log.Fatalf("failed to open index %v: %v", idx, err)
 	} else {
 		log.Infof("initialized Motr key-value index %s.", idx)
 	}
+	defer mkv.Close()
 	oid := hash128.Sum(hash128.Sum([]byte(key)))
 	if edel := mkv.Delete(oid); edel != nil {
 		log.Errorf("Error deleting key %s: %s.", key, edel)
@@ -173,19 +173,26 @@ func deleteObject(idx string, key string) {
 
 func selectObject(idx string, key string) {
 	var mkv mio.Mkv
-	log.Info("initialized Motr key-value access.")
 	if err := mkv.Open(idx, false); err != nil {
 		log.Fatalf("failed to open index %v: %v", idx, err)
 	} else {
 		log.Infof("initialized Motr key-value index %s.", idx)
 	}
+	defer mkv.Close()
 	oid := hash128.Sum(hash128.Sum([]byte(key)))
 	oid128 := uint128.FromBytes(oid)
-	if r, eget := mkv.Get(oid); eget != nil {
-		log.Errorf("Error retrieving key %s: %s.", key, eget)
+	if rhas, ehas := mkv.Has(oid); rhas {
+		if r, eget := mkv.Get(oid); eget != nil {
+			log.Errorf("Error retrieving key %s: %s.", key, eget)
+		} else {
+			log.Infof("Key %s in index %s has oid: 0x%x:0x%x, value: %s.", key, idx, oid128.Hi, oid128.Lo, string(r))
+		}
 	} else {
-		log.Infof("Key %s in index %s has oid: 0x%x:0x%x, value: %s.", key, idx, oid128.Hi, oid128.Lo, string(r))
-
+		if ehas == nil {
+			log.Infof("Key %s in index %s does not exist.", key, idx)
+		} else {
+			log.Fatalf("Error checking existence of key %s in index %s.", key, idx)
+		}
 	}
 }
 func contains(s []string, e string) bool {
