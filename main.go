@@ -39,6 +39,7 @@ import (
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/mbndr/figlet4go"
 
+	"github.com/allisterb/go-ds-motr/mio"
 	"github.com/allisterb/go-ds-motr/uint128"
 )
 
@@ -52,6 +53,7 @@ type StoreCmd struct {
 	HaxEP      string `required:"" name:"hax" short:"H" help:"Motr local endpoint address."`
 	ProfileFid string `required:"" name:"profile" short:"C" help:"Cluster profile fid."`
 	ProcessFid string `required:"" name:"process" short:"P" help:"Local process fid."`
+	Idx        string `arg:"" name:"index" required:"" help:"Index ID."`
 	Key        string `arg:"" name:"key" required:"" help:"Key name."`
 	Value      string `arg:"" default:"" name:"key" help:"Value to store, or omit to retrieve the value stored at this key."`
 	Delete     bool   `help:"Delete object identified by this key." short:"d"`
@@ -136,17 +138,22 @@ func (l *OidCmd) Run(ctx *kong.Context) error {
 }
 
 func (s *StoreCmd) Run(ctx *kong.Context) error {
+	if rinit, einit := mio.Init(&s.LocalEP, &s.HaxEP, &s.ProfileFid, &s.ProcessFid, 1, false); !rinit {
+		log.Fatalf("Error initializing Motr client: %s", einit)
+	} else {
+		log.Info(("Initialized Motr client."))
+	}
 	if s.Value == "" {
 		if s.Delete {
-			deleteObject(s.Key)
+			deleteObject(s.Idx, s.Key)
 		} else {
-			selectObject(s.Key)
+			selectObject(s.Idx, s.Key)
 		}
 	} else {
 		if s.Update {
-			updateObject(s.Key, []byte(s.Value))
+			updateObject(s.Idx, s.Key, []byte(s.Value))
 		} else {
-			createObject(s.Key, []byte(s.Value))
+			createObject(s.Idx, s.Key, []byte(s.Value))
 		}
 	}
 	return nil
@@ -195,19 +202,26 @@ func createOID(name string) {
 	log.Infof("128-bit OID is 0x%x:0x%x\n", oid.Hi, oid.Lo)
 }
 
-func selectObject(key string) {
-
-}
-func createObject(name string, data []byte) {
-
-}
-func updateObject(name string, data []byte) {
-
-}
-func deleteObject(name string) {
+func createObject(idx string, name string, data []byte) {
 
 }
 
+func updateObject(idx string, name string, data []byte) {
+
+}
+
+func deleteObject(idx string, name string) {
+
+}
+
+func selectObject(idx string, key string) {
+	var mkv mio.Mkv
+	log.Info("initialized Motr key-value store access.")
+	if err := mkv.Open(idx, false); err != nil {
+		log.Fatalf("failed to open index %v: %v", idx, err)
+	}
+
+}
 func contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
