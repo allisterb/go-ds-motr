@@ -12,7 +12,7 @@ import (
 
 //var _ ds.Datastore = (*Motr) (nil)
 
-type Motr struct {
+type MotrDatastore struct {
 	Config
 	mio.Mkv
 }
@@ -31,7 +31,7 @@ var log = logging.Logger("motrds")
 var hash128 = fnv.New128()
 var mkv mio.Mkv
 
-func NewMotrDatastore(conf Config) (*Motr, error) {
+func NewMotrDatastore(conf Config) (*MotrDatastore, error) {
 	if rinit, einit := mio.Init(&conf.LocalAddr, &conf.HaxAddr, &conf.ProfileFid, &conf.LocalProcessFid, conf.Threads, conf.EnableTrace); !rinit {
 		log.Errorf("Failed to initialize Motr client: %s.", einit)
 		return nil, einit
@@ -44,17 +44,16 @@ func NewMotrDatastore(conf Config) (*Motr, error) {
 		return nil, eidx
 	} else {
 		log.Infof("Initialized Motr key-value index %v.", conf.Idx)
-		return &Motr{conf, mkv}, nil
+		return &MotrDatastore{conf, mkv}, nil
 	}
 }
 
-func Get(ctx context.Context, key ds.Key) (value []byte, err error) {
-	if rget, eget := mkv.Get(getOID(key)); eget != nil {
-		log.Errorf("Error retrieving key %s from index %s.", eget)
-		return nil, eget
-	} else {
-		return rget, nil
-	}
+func (d *MotrDatastore) Has(ctx context.Context, key ds.Key) (bool, error) {
+	return mkv.Has(getOID(key))
+}
+
+func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) (value []byte, err error) {
+	return mkv.Get(getOID(key))
 }
 
 func Close() error {
