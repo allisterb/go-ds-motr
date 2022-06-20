@@ -56,6 +56,10 @@ func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) (value []byte, err 
 	return mkv.Get(getOID(key))
 }
 
+func (d *MotrDatastore) GetSize(ctx context.Context, key ds.Key) (size int, err error) {
+	return mkv.GetSize(getOID(key))
+}
+
 func Close() error {
 	return mkv.Close()
 }

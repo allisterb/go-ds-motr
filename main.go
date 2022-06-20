@@ -35,10 +35,12 @@ type StoreCmd struct {
 	Delete     bool   `help:"Delete object identified by this key." short:"d"`
 	Update     bool   `help:"Update object identified by this key with a new value." short:"u"`
 	File       bool   `help:"Update object identified by this key with a new value." short:"f"`
+	Size       bool   `help:"Get the size of object identified by this key with a new value." short:"s"`
 }
 
 var log = logging.Logger("CLI")
 var hash128 = fnv.New128()
+var mkv mio.Mkv
 
 // Command-line arguments
 var CLI struct {
@@ -84,11 +86,21 @@ func (s *StoreCmd) Run(ctx *kong.Context) error {
 	} else {
 		log.Info(("Initialized Motr client."))
 	}
+	if err := mkv.Open(s.Idx, false); err != nil {
+		log.Fatalf("failed to open index %v: %v", s.Idx, err)
+	} else {
+		log.Infof("initialized Motr key-value index %s.", s.Idx)
+	}
+	defer mkv.Close()
 	if s.Value == "" {
 		if s.Delete {
 			deleteObject(s.Idx, s.Key)
 		} else {
-			selectObject(s.Idx, s.Key)
+			if s.Size {
+				getObjectSize(s.Idx, s.Key)
+			} else {
+				selectObject(s.Idx, s.Key)
+			}
 		}
 	} else {
 		createObject(s.Idx, s.Key, []byte(s.Value), s.Update)
@@ -134,35 +146,19 @@ func parseOID(id string) {
 
 func createOID(name string) {
 	log.Infof("Creating 128-bit OID for key name %s usng FNV-1 hash...")
-
 	oid := uint128.FromBytes(hash128.Sum([]byte(name)))
 	log.Infof("128-bit OID is 0x%x:0x%x\n", oid.Hi, oid.Lo)
 }
 
 func createObject(idx string, key string, data []byte, update bool) {
-	var mkv mio.Mkv
-	if err := mkv.Open(idx, false); err != nil {
-		log.Fatalf("failed to open index %v: %v", idx, err)
-	} else {
-		log.Infof("Initialized Motr key-value index %s.", idx)
-	}
-	defer mkv.Close()
 	if pget := mkv.Put(hash128.Sum(hash128.Sum([]byte(key))), data, update); pget != nil {
 		log.Errorf("Error putting object at key %s in index %s: %s.", key, idx, pget)
 	} else {
 		log.Infof("Put object at key %s in index %s", key, idx)
 	}
-	mkv.Close()
 }
 
 func deleteObject(idx string, key string) {
-	var mkv mio.Mkv
-	if err := mkv.Open(idx, false); err != nil {
-		log.Fatalf("failed to open index %v: %v", idx, err)
-	} else {
-		log.Infof("initialized Motr key-value index %s.", idx)
-	}
-	defer mkv.Close()
 	oid := hash128.Sum(hash128.Sum([]byte(key)))
 	if edel := mkv.Delete(oid); edel != nil {
 		log.Errorf("Error deleting key %s: %s.", key, edel)
@@ -172,13 +168,6 @@ func deleteObject(idx string, key string) {
 }
 
 func selectObject(idx string, key string) {
-	var mkv mio.Mkv
-	if err := mkv.Open(idx, false); err != nil {
-		log.Fatalf("failed to open index %v: %v", idx, err)
-	} else {
-		log.Infof("initialized Motr key-value index %s.", idx)
-	}
-	defer mkv.Close()
 	oid := hash128.Sum(hash128.Sum([]byte(key)))
 	oid128 := uint128.FromBytes(oid)
 	if rhas, ehas := mkv.Has(oid); rhas {
@@ -193,6 +182,15 @@ func selectObject(idx string, key string) {
 		} else {
 			log.Fatalf("Error checking existence of key %s in index %s.", key, idx)
 		}
+	}
+}
+
+func getObjectSize(idx string, key string) {
+	oid := hash128.Sum(hash128.Sum([]byte(key)))
+	if size, esize := mkv.GetSize(oid); esize != nil {
+		log.Fatalf("Error getting size of object at key %s in index %s.", key, idx)
+	} else {
+		log.Infof("The size of object at key %s in index %s is %v.", key, idx, size)
 	}
 }
 func contains(s []string, e string) bool {

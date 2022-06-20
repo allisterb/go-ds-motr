@@ -247,4 +247,45 @@ func (mkv *Mkv) Has(key []byte) (bool, error) {
 	}
 }
 
+func (mkv *Mkv) GetSize(key []byte) (int, error) {
+	var k, v C.struct_m0_bufvec
+	if C.m0_bufvec_empty_alloc(&k, 1) != 0 {
+		return 0, errors.New("failed to allocate key bufvec")
+	}
+	defer C.m0_bufvec_free2(&k)
+
+	if C.m0_bufvec_empty_alloc(&v, 1) != 0 {
+		return 0, errors.New("failed to allocate value bufvec")
+	}
+	defer C.m0_bufvec_free(&v) // cleanup buffer after GET
+
+	*k.ov_buf = unsafe.Pointer(&key[0])
+	*k.ov_vec.v_count = C.ulong(len(key))
+	vPtr := &v
+	flags := C.uint(0)
+	var rcI C.int32_t
+	var op *C.struct_m0_op
+	rc := C.m0_idx_op(mkv.idx, C.M0_IC_GET, &k, vPtr, &rcI, flags, &op)
+	if rc != 0 {
+		return 0, fmt.Errorf("failed to init index op: %d", rc)
+	}
+
+	C.m0_op_launch(&op, 1)
+	rc = C.m0_op_wait(op, bits(C.M0_OS_FAILED,
+		C.M0_OS_STABLE), C.M0_TIME_NEVER)
+	if rc == 0 {
+		rc = C.m0_rc(op)
+	}
+	C.m0_op_fini(op)
+	C.m0_op_free(op)
+
+	if rc != 0 {
+		return 0, fmt.Errorf("op failed: %d", rc)
+	} else if rcI != 0 {
+		return 0, nil
+	} else {
+		return int(*v.ov_vec.v_count), nil
+	}
+}
+
 // vi: sw=4 ts=4 expandtab ai
