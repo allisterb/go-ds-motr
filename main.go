@@ -155,8 +155,20 @@ func createObject(idx string, key string, data []byte, update bool) {
 	}
 }
 
-func deleteObject(idx string, name string) {
-
+func deleteObject(idx string, key string) {
+	var mkv mio.Mkv
+	log.Info("initialized Motr key-value access.")
+	if err := mkv.Open(idx, false); err != nil {
+		log.Fatalf("failed to open index %v: %v", idx, err)
+	} else {
+		log.Infof("initialized Motr key-value index %s.", idx)
+	}
+	oid := hash128.Sum(hash128.Sum([]byte(key)))
+	if edel := mkv.Delete(oid); edel != nil {
+		log.Errorf("Error deleting key %s: %s.", key, edel)
+	} else {
+		log.Infof("Deleted key %s in index %s.", key, idx)
+	}
 }
 
 func selectObject(idx string, key string) {
