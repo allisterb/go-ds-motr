@@ -35,6 +35,8 @@ import (
 	"errors"
 	"fmt"
 	"unsafe"
+
+	ds "github.com/ipfs/go-datastore"
 )
 
 // Mkv provides key-value API to Motr
@@ -282,7 +284,7 @@ func (mkv *Mkv) GetSize(key []byte) (int, error) {
 	if rc != 0 {
 		return 0, fmt.Errorf("op failed: %d", rc)
 	} else if rcI != 0 {
-		return 0, nil
+		return 0, ds.ErrNotFound
 	} else {
 		return int(*v.ov_vec.v_count), nil
 	}

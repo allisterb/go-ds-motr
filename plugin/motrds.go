@@ -6,9 +6,11 @@ import (
 	"sync"
 
 	ds "github.com/ipfs/go-datastore"
+	query "github.com/ipfs/go-datastore/query"
 	logging "github.com/ipfs/go-log/v2"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/util"
 
 	mio "github.com/allisterb/go-ds-motr/mio"
 )
@@ -84,16 +86,75 @@ func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) (value []byte, err 
 }
 
 func (d *MotrDatastore) GetSize(ctx context.Context, key ds.Key) (size int, err error) {
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
 	return mkv.GetSize(getOID(key))
 }
 
-//func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results, error) {
-//	results := make(chan query.Result)
-//	k := ds.Key(q.Prefix)
-//k.
-//}
+func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results, error) {
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
+	var rnge *util.Range
+	// make a copy of the query for the fallback naive query implementation.
+	// don't modify the original so res.Query() returns the correct results.
+	qNaive := q
+	prefix := ds.NewKey(q.Prefix).String()
+	if prefix != "/" {
+		rnge = util.BytesPrefix([]byte(prefix + "/"))
+		qNaive.Prefix = ""
+	}
+	i := d.Ldb.NewIterator(rnge, nil)
+	next := i.Next
+	if len(q.Orders) > 0 {
+		switch q.Orders[0].(type) {
+		case query.OrderByKey, *query.OrderByKey:
+			qNaive.Orders = nil
+		case query.OrderByKeyDescending, *query.OrderByKeyDescending:
+			next = func() bool {
+				next = i.Prev
+				return i.Last()
+			}
+			qNaive.Orders = nil
+		default:
+		}
+	}
+	r := query.ResultsFromIterator(q, query.Iterator{
+		Next: func() (query.Result, bool) {
+			d.Lock.RLock()
+			defer d.Lock.RUnlock()
+			if !next() {
+				return query.Result{}, false
+			}
+			oid := hash128.Sum(i.Key())
+			k := string(oid)
+			var size int
+			if _size, serr := mkv.GetSize(oid); serr != nil {
+				return query.Result{}, true
+			} else {
+				size = _size
+			}
+			e := query.Entry{Key: k, Size: size}
+			if !q.KeysOnly {
+				if v, eval := mkv.Get(oid); eval != nil {
+					e.Value = v
+				}
+			}
+			return query.Result{Entry: e}, true
+		},
+		Close: func() error {
+			d.Lock.RLock()
+			defer d.Lock.RUnlock()
+			i.Release()
+			return nil
+		},
+	})
+	return query.NaiveQueryApply(qNaive, r), nil
+}
 
-func Close() error {
+func (d *MotrDatastore) Close() error {
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
+	d.Ldb.Close()
 	return mkv.Close()
 }
 
