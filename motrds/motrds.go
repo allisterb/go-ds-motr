@@ -57,11 +57,11 @@ func NewMotrDatastore(conf Config) (*MotrDatastore, error) {
 	ldbopt := new(opt.Options)
 	var ldb leveldb.DB
 	if _ldb, eldb := leveldb.OpenFile(conf.LevelDBPath, ldbopt); eldb != nil {
-		log.Errorf("Failed to open LevelDB db at %s.", conf.LevelDBPath)
+		log.Errorf("Failed to open LevelDB database at %s.", conf.LevelDBPath)
 		return nil, eldb
 	} else {
 		ldb = *_ldb
-		log.Infof("Opened LevelDB db at %v.", conf.LevelDBPath)
+		log.Infof("Opened LevelDB database at %v.", conf.LevelDBPath)
 	}
 	return &MotrDatastore{conf, mkv, ldb, new(sync.RWMutex)}, nil
 }
@@ -69,6 +69,7 @@ func NewMotrDatastore(conf Config) (*MotrDatastore, error) {
 func (d *MotrDatastore) Has(ctx context.Context, key ds.Key) (bool, error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
+	log.Debugf("Check for existence of key %s..", string(key.Bytes()))
 	return d.Ldb.Has(key.Bytes(), nil)
 }
 
@@ -152,17 +153,20 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 }
 
 func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err error) {
+	oid := getOID(key)
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
+	if emotr := mkv.Put(oid, value, false); emotr != nil {
+		log.Errorf("Error putting key %v with OID %v to Motr index %s: %s", key, oid, d.Idx, emotr)
+		return emotr
+	}
 	if eldb := d.Ldb.Put(key.Bytes(), []byte{1}, &opt.WriteOptions{Sync: true}); eldb != nil {
 		log.Errorf("Error writing key %v to LevelDB: %s", key, eldb)
+		mkv.Delete(getOID(key))
 		return eldb
+	} else {
+		return nil
 	}
-	return mkv.Put(getOID(key), value, false)
-}
-
-func (d *MotrDatastore) Sync(ctx context.Context, prefix ds.Key) error {
-	return nil
 }
 
 func (d *MotrDatastore) Delete(ctx context.Context, key ds.Key) (err error) {
@@ -173,6 +177,10 @@ func (d *MotrDatastore) Delete(ctx context.Context, key ds.Key) (err error) {
 		return eldb
 	}
 	return mkv.Delete(getOID(key))
+}
+
+func (d *MotrDatastore) Sync(ctx context.Context, prefix ds.Key) error {
+	return nil
 }
 
 func (d *MotrDatastore) Close() error {
