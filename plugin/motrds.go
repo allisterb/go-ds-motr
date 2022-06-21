@@ -15,7 +15,7 @@ import (
 	mio "github.com/allisterb/go-ds-motr/mio"
 )
 
-//var _ ds.Datastore = (*Motr) (nil)
+var _ ds.Datastore = (*MotrDatastore)(nil)
 
 type MotrDatastore struct {
 	Config
@@ -149,6 +149,30 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 		},
 	})
 	return query.NaiveQueryApply(qNaive, r), nil
+}
+
+func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err error) {
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
+	if eldb := d.Ldb.Put(key.Bytes(), []byte{1}, &opt.WriteOptions{Sync: true}); eldb != nil {
+		log.Errorf("Error writing key %v to LevelDB: %s", key, eldb)
+		return eldb
+	}
+	return mkv.Put(getOID(key), value, false)
+}
+
+func (d *MotrDatastore) Sync(ctx context.Context, prefix ds.Key) error {
+	return nil
+}
+
+func (d *MotrDatastore) Delete(ctx context.Context, key ds.Key) (err error) {
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
+	if eldb := d.Ldb.Delete(key.Bytes(), &opt.WriteOptions{Sync: true}); eldb != nil {
+		log.Errorf("Error deleting key %v from LevelDB: %s", key, eldb)
+		return eldb
+	}
+	return mkv.Delete(getOID(key))
 }
 
 func (d *MotrDatastore) Close() error {
