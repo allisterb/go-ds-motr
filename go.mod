@@ -9,11 +9,14 @@ require (
 	github.com/mbndr/figlet4go v0.0.0-20190224160619-d6cef5b186ea
 )
 
+require github.com/golang/snappy v0.0.4 // indirect
+
 require (
 	github.com/alecthomas/kong v0.6.1
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/jbenet/goprocess v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/syndtr/goleveldb v1.0.0
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
