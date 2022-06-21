@@ -69,26 +69,35 @@ func NewMotrDatastore(conf Config) (*MotrDatastore, error) {
 func (d *MotrDatastore) Has(ctx context.Context, key ds.Key) (bool, error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
-	log.Debugf("Check for existence of key %s..", string(key.Bytes()))
-	return d.Ldb.Has(key.Bytes(), nil)
+	has, ehas := d.Ldb.Has(key.Bytes(), nil)
+	log.Debugf("Check for existence of key %s in LevelDB: (%v, %v)", string(key.Bytes()), has, ehas)
+	return has, ehas
 }
 
-func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) (value []byte, err error) {
+func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) ([]byte, error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
-	val, err := d.Ldb.Get(key.Bytes(), nil)
-	if err != nil {
-		if err == leveldb.ErrNotFound {
+	hasldb, eldb := d.Ldb.Has(key.Bytes(), nil)
+	log.Debugf("Check for existence of key %s in LevelDB: (%v, %v)", string(key.Bytes()), hasldb, eldb)
+	if eldb != nil {
+		if eldb == leveldb.ErrNotFound {
 			return nil, ds.ErrNotFound
+		} else {
+			return nil, eldb
 		}
-		return nil, err
+	} else {
+		if !hasldb {
+			return nil, ds.ErrNotFound
+		} else {
+			return d.Mkv.Get(getOID(key))
+		}
 	}
-	return d.Mkv.Get(val)
 }
 
 func (d *MotrDatastore) GetSize(ctx context.Context, key ds.Key) (size int, err error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
+	log.Debugf("Get size of object at key %s in Motr...", key)
 	return mkv.GetSize(getOID(key))
 }
 
@@ -159,12 +168,15 @@ func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err 
 	if emotr := mkv.Put(oid, value, true); emotr != nil {
 		log.Errorf("Error putting key %v with OID %v to Motr index %s: %s", key, oid, d.Idx, emotr)
 		return emotr
+	} else {
+		log.Debugf("Put key %v with OID %v to Motr index %s.", key, oid, d.Idx)
 	}
 	if eldb := d.Ldb.Put(key.Bytes(), []byte{1}, &opt.WriteOptions{Sync: true}); eldb != nil {
 		log.Errorf("Error writing key %v to LevelDB: %s", key, eldb)
 		mkv.Delete(getOID(key))
 		return eldb
 	} else {
+		log.Debugf("Wrote key %v to LevelDB.", key)
 		return nil
 	}
 }
@@ -175,6 +187,8 @@ func (d *MotrDatastore) Delete(ctx context.Context, key ds.Key) (err error) {
 	if eldb := d.Ldb.Delete(key.Bytes(), &opt.WriteOptions{Sync: true}); eldb != nil {
 		log.Errorf("Error deleting key %v from LevelDB: %s", key, eldb)
 		return eldb
+	} else {
+		log.Debugf("Deleted key %v from LevelDB.", key)
 	}
 	return mkv.Delete(getOID(key))
 }
@@ -186,7 +200,8 @@ func (d *MotrDatastore) Sync(ctx context.Context, prefix ds.Key) error {
 func (d *MotrDatastore) Close() error {
 	d.Lock.Lock()
 	defer d.Lock.Unlock()
-	d.Ldb.Close()
+	eclose := d.Ldb.Close()
+	log.Infof("Close LevelDB database: %s.", eclose)
 	return mkv.Close()
 }
 
