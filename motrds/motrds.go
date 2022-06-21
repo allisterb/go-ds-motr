@@ -182,6 +182,10 @@ func (d *MotrDatastore) Close() error {
 	return mkv.Close()
 }
 
+func (d *MotrDatastore) Batch(ctx context.Context) (ds.Batch, error) {
+	return ds.NewBasicBatch(d), nil
+}
+
 func getOID(key ds.Key) []byte {
 	return hash128.Sum(key.Bytes())
 }

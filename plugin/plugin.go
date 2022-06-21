@@ -16,19 +16,19 @@ var Plugins = []plugin.Plugin{
 
 type MotrPlugin struct{}
 
-func (_ MotrPlugin) Name() string {
+func (MotrPlugin) Name() string {
 	return "motr-datastore-plugin"
 }
 
-func (_ MotrPlugin) Version() string {
+func (MotrPlugin) Version() string {
 	return "0.0.1"
 }
 
-func (_ MotrPlugin) Init(env *plugin.Environment) error {
+func (MotrPlugin) Init(env *plugin.Environment) error {
 	return nil
 }
 
-func (_ MotrPlugin) DatastoreTypeName() string {
+func (MotrPlugin) DatastoreTypeName() string {
 	return "motrds"
 }
 
