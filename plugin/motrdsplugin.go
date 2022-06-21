@@ -6,125 +6,98 @@ import (
 	"github.com/ipfs/go-ipfs/plugin"
 	"github.com/ipfs/go-ipfs/repo"
 	"github.com/ipfs/go-ipfs/repo/fsrepo"
+
+	"github.com/allisterb/go-ds-motr/motrds"
 )
 
 var Plugins = []plugin.Plugin{
-	&S3Plugin{},
+	&MotrPlugin{},
 }
 
-type S3Plugin struct{}
+type MotrPlugin struct{}
 
-func (s3p S3Plugin) Name() string {
-	return "s3-datastore-plugin"
+func (_ MotrPlugin) Name() string {
+	return "motr-datastore-plugin"
 }
 
-func (s3p S3Plugin) Version() string {
+func (_ MotrPlugin) Version() string {
 	return "0.0.1"
 }
 
-func (s3p S3Plugin) Init(env *plugin.Environment) error {
+func (_ MotrPlugin) Init(env *plugin.Environment) error {
 	return nil
 }
 
-func (s3p S3Plugin) DatastoreTypeName() string {
-	return "s3ds"
+func (_ MotrPlugin) DatastoreTypeName() string {
+	return "motrds"
 }
 
-func (s3p S3Plugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
+func (mp MotrPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 	return func(m map[string]interface{}) (fsrepo.DatastoreConfig, error) {
-		region, ok := m["region"].(string)
+		localAddr, ok := m["localAddr"].(string)
 		if !ok {
-			return nil, fmt.Errorf("s3ds: no region specified")
+			return nil, fmt.Errorf("motrds: no local address specified")
 		}
 
-		bucket, ok := m["bucket"].(string)
+		haxAddr, ok := m["haxAddr"].(string)
 		if !ok {
-			return nil, fmt.Errorf("s3ds: no bucket specified")
+			return nil, fmt.Errorf("motords: no hax address specified")
 		}
 
-		accessKey, ok := m["accessKey"].(string)
+		profileFid, ok := m["profileFid"].(string)
 		if !ok {
-			return nil, fmt.Errorf("s3ds: no accessKey specified")
+			return nil, fmt.Errorf("motrds: no cluster profile fid specified")
 		}
 
-		secretKey, ok := m["secretKey"].(string)
+		processFid, ok := m["processFid"].(string)
 		if !ok {
-			return nil, fmt.Errorf("s3ds: no secretKey specified")
+			return nil, fmt.Errorf("motrds: no local process specified")
 		}
 
-		// Optional.
-
-		var sessionToken string
-		if v, ok := m["sessionToken"]; ok {
-			sessionToken, ok = v.(string)
-			if !ok {
-				return nil, fmt.Errorf("s3ds: sessionToken not a string")
-			}
-		}
-
-		var endpoint string
-		if v, ok := m["regionEndpoint"]; ok {
-			endpoint, ok = v.(string)
-			if !ok {
-				return nil, fmt.Errorf("s3ds: regionEndpoint not a string")
-			}
-		}
-		var rootDirectory string
-		if v, ok := m["rootDirectory"]; ok {
-			rootDirectory, ok = v.(string)
-			if !ok {
-				return nil, fmt.Errorf("s3ds: rootDirectory not a string")
-			}
-		}
-		var workers int
-		if v, ok := m["workers"]; ok {
-			workersf, ok := v.(float64)
-			workers = int(workersf)
+		// Optional
+		var threads int
+		if v, ok := m["threads"]; ok {
+			threadsf, ok := v.(float64)
+			threads = int(threadsf)
 			switch {
 			case !ok:
-				return nil, fmt.Errorf("s3ds: workers not a number")
-			case workers <= 0:
-				return nil, fmt.Errorf("s3ds: workers <= 0: %f", workersf)
-			case float64(workers) != workersf:
-				return nil, fmt.Errorf("s3ds: workers is not an integer: %f", workersf)
+				return nil, fmt.Errorf("motrds: threads not a number")
+			case threads <= 0:
+				return nil, fmt.Errorf("motrds: threads <= 0: %f", threadsf)
+			case float64(threads) != threadsf:
+				return nil, fmt.Errorf("motrds: threads is not an integer: %f", threadsf)
 			}
 		}
-		var credentialsEndpoint string
-		if v, ok := m["credentialsEndpoint"]; ok {
-			credentialsEndpoint, ok = v.(string)
+		var trace bool = false
+		if v, ok := m["trace"]; ok {
+			trace, ok = v.(bool)
 			if !ok {
-				return nil, fmt.Errorf("s3ds: credentialsEndpoint not a string")
+				return nil, fmt.Errorf("motrds: trace not a bool")
 			}
 		}
-
-		return &S3Config{
-			cfg: s3ds.Config{
-				Region:              region,
-				Bucket:              bucket,
-				AccessKey:           accessKey,
-				SecretKey:           secretKey,
-				SessionToken:        sessionToken,
-				RootDirectory:       rootDirectory,
-				Workers:             workers,
-				RegionEndpoint:      endpoint,
-				CredentialsEndpoint: credentialsEndpoint,
+		return &MotrConfig{
+			cfg: motrds.Config{
+				LocalAddr:       localAddr,
+				HaxAddr:         haxAddr,
+				ProfileFid:      profileFid,
+				LocalProcessFid: processFid,
 			},
 		}, nil
 	}
 }
 
-type S3Config struct {
-	cfg s3ds.Config
+type MotrConfig struct {
+	cfg motrds.Config
 }
 
-func (s3c *S3Config) DiskSpec() fsrepo.DiskSpec {
+func (mc *MotrConfig) DiskSpec() fsrepo.DiskSpec {
 	return fsrepo.DiskSpec{
-		"region":        s3c.cfg.Region,
-		"bucket":        s3c.cfg.Bucket,
+		"localAddr":     mc.cfg.LocalAddr,
+		"haxAddr":       mc.cfg.HaxAddr,
 		"rootDirectory": s3c.cfg.RootDirectory,
 	}
 }
 
-func (s3c *S3Config) Create(path string) (repo.Datastore, error) {
-	return s3ds.NewS3Datastore(s3c.cfg)
+func (mc *MotrConfig) Create(path string) (repo.Datastore, error) {
+	return motrds.NewMotrDatastore(mc.cfg)
 }
