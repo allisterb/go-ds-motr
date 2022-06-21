@@ -11,4 +11,4 @@ if [ ! -z "$2" ]; then
 else
     IPFS_CMD=ipfs
 fi
-GOLOG_FILE=$GOLOG_FILE GOLOG_OUTPUT=stdout+file GOLOG_LOG_LEVEL=info,datastore.motr=debug $IPFS_CMD daemon
+GOLOG_FILE=$GOLOG_FILE GOLOG_OUTPUT=stdout+file GOLOG_LOG_LEVEL=info,motrds=debug $IPFS_CMD daemon

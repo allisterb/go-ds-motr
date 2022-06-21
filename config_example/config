@@ -1,7 +1,7 @@
 {
   "Identity": {
-    "PeerID": "12D3KooWCe1Weegzy4VHnbYsiLzP1Uno3yC5ExQwabg1wYjQg4ca",
-    "PrivKey": "CAESQEVV8X72QMwzL4bJy9OecjNjdYwe62dxOyrpBLfTGqT0KevlXiuNYn3alz3ZCUFmtlsE3ihekZgbMnYZ5qsQwwM="
+    "PeerID": "12D3KooWFVrq6xTocti5AG4ufHyR7g57NAE2hXz873a1VctLmisq",
+    "PrivKey": "CAESQOgA/RXyYRzHY9kGOunfXCeqvRLyWkVXbdZd59L2A/vvVGh+Yp4XHlF8d7KwJXbivHUj7kFGZylTJYIr3jm6Dvg="
   },
   "Datastore": {
     "StorageMax": "10GB",
@@ -11,30 +11,18 @@
       "mounts": [
         {
           "child": {
-            "compression": "none",
-            "path": "datastore",
-            "type": "levelds"
-          },
-          "mountpoint": "/",
-          "prefix": "leveldb.datastore",
-          "type": "measure"
-        },
-        {
-          "child": {
-            "type": "motrds",
-            "localAddr": "inet:tcp:192.168.1.161@22501",
             "haxAddr": "inet:tcp:192.168.1.161@22001",
-            "profileFid": "0x7000000000000001:0x0",
-            "processFid": "0x7200000000000001:0x3",
             "index": "0x7800000000000123:0x123456780",
-            "leveldbPath": "/home/allisterb/.leveldb/ipfs"
-
+            "leveldbPath": "/home/allisterb/.leveldb/ipfs",
+            "localAddr": "inet:tcp:192.168.1.161@22501",
+            "processFid": "0x7200000000000001:0x3",
+            "profileFid": "0x7000000000000001:0x0",
+            "type": "motrds"
           },
           "mountpoint": "/blocks",
           "prefix": "motr.datastore",
           "type": "measure"
         }
-
       ],
       "type": "mount"
     },
