@@ -51,7 +51,17 @@ func (mp MotrPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 
 		processFid, ok := m["processFid"].(string)
 		if !ok {
-			return nil, fmt.Errorf("motrds: no local process specified")
+			return nil, fmt.Errorf("motrds: no local process fid specified")
+		}
+
+		idx, ok := m["index"].(string)
+		if !ok {
+			return nil, fmt.Errorf("motrds: no index specified")
+		}
+
+		ldbPath, ok := m["leveldbPath"].(string)
+		if !ok {
+			return nil, fmt.Errorf("motrds: no LevelDB path specified")
 		}
 
 		// Optional
@@ -81,6 +91,10 @@ func (mp MotrPlugin) DatastoreConfigParser() fsrepo.ConfigFromMap {
 				HaxAddr:         haxAddr,
 				ProfileFid:      profileFid,
 				LocalProcessFid: processFid,
+				Idx:             idx,
+				LevelDBPath:     ldbPath,
+				Threads:         threads,
+				Trace:           trace,
 			},
 		}, nil
 	}
@@ -92,9 +106,12 @@ type MotrConfig struct {
 
 func (mc *MotrConfig) DiskSpec() fsrepo.DiskSpec {
 	return fsrepo.DiskSpec{
-		"localAddr":     mc.cfg.LocalAddr,
-		"haxAddr":       mc.cfg.HaxAddr,
-		"rootDirectory": s3c.cfg.RootDirectory,
+		"localAddr":  mc.cfg.LocalAddr,
+		"haxAddr":    mc.cfg.HaxAddr,
+		"profileFid": mc.cfg.ProfileFid,
+		"processFid": mc.cfg.LocalProcessFid,
+		"index":      mc.cfg.Idx,
+		"ldbPath":    mc.cfg.LevelDBPath,
 	}
 }
 

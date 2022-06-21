@@ -30,9 +30,9 @@ type Config struct {
 	ProfileFid      string
 	LocalProcessFid string
 	Idx             string
-	Threads         int
-	EnableTrace     bool
 	LevelDBPath     string
+	Threads         int
+	Trace           bool
 }
 
 var log = logging.Logger("motrds")
@@ -40,7 +40,7 @@ var hash128 = fnv.New128()
 var mkv mio.Mkv
 
 func NewMotrDatastore(conf Config) (*MotrDatastore, error) {
-	if rinit, einit := mio.Init(&conf.LocalAddr, &conf.HaxAddr, &conf.ProfileFid, &conf.LocalProcessFid, conf.Threads, conf.EnableTrace); !rinit {
+	if rinit, einit := mio.Init(&conf.LocalAddr, &conf.HaxAddr, &conf.ProfileFid, &conf.LocalProcessFid, conf.Threads, conf.Trace); !rinit {
 		log.Errorf("Failed to initialize Motr client: %s.", einit)
 		return nil, einit
 	} else {
