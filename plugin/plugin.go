@@ -106,12 +106,12 @@ type MotrConfig struct {
 
 func (mc *MotrConfig) DiskSpec() fsrepo.DiskSpec {
 	return fsrepo.DiskSpec{
-		"localAddr":  mc.cfg.LocalAddr,
-		"haxAddr":    mc.cfg.HaxAddr,
-		"profileFid": mc.cfg.ProfileFid,
-		"processFid": mc.cfg.LocalProcessFid,
-		"index":      mc.cfg.Idx,
-		"ldbPath":    mc.cfg.LevelDBPath,
+		"localAddr":   mc.cfg.LocalAddr,
+		"haxAddr":     mc.cfg.HaxAddr,
+		"profileFid":  mc.cfg.ProfileFid,
+		"processFid":  mc.cfg.LocalProcessFid,
+		"index":       mc.cfg.Idx,
+		"leveldbPath": mc.cfg.LevelDBPath,
 	}
 }
 

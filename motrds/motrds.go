@@ -156,7 +156,7 @@ func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err 
 	oid := getOID(key)
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
-	if emotr := mkv.Put(oid, value, false); emotr != nil {
+	if emotr := mkv.Put(oid, value, true); emotr != nil {
 		log.Errorf("Error putting key %v with OID %v to Motr index %s: %s", key, oid, d.Idx, emotr)
 		return emotr
 	}
