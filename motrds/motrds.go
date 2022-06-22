@@ -2,6 +2,7 @@ package motrds
 
 import (
 	"context"
+	"fmt"
 	"hash/fnv"
 	"sync"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 
 	"github.com/allisterb/go-ds-motr/mio"
+	"github.com/allisterb/go-ds-motr/uint128"
 )
 
 var _ ds.Datastore = (*MotrDatastore)(nil)
@@ -70,7 +72,7 @@ func (d *MotrDatastore) Has(ctx context.Context, key ds.Key) (bool, error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
 	has, ehas := d.Ldb.Has(key.Bytes(), nil)
-	log.Debugf("Check for existence of key %s in LevelDB: (%v, %v)", string(key.Bytes()), has, ehas)
+	log.Debugf("Check for existence of key %s in LevelDB: (%v, %v).", string(key.Bytes()), has, ehas)
 	return has, ehas
 }
 
@@ -78,7 +80,7 @@ func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) ([]byte, error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
 	hasldb, eldb := d.Ldb.Has(key.Bytes(), nil)
-	log.Debugf("Check for existence of key %s in LevelDB: (%v, %v)", string(key.Bytes()), hasldb, eldb)
+	log.Debugf("Check for existence of key %s in LevelDB: (%v, %v).", string(key.Bytes()), hasldb, eldb)
 	if eldb != nil {
 		if eldb == leveldb.ErrNotFound {
 			return nil, ds.ErrNotFound
@@ -166,10 +168,10 @@ func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err 
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
 	if emotr := mkv.Put(oid, value, true); emotr != nil {
-		log.Errorf("Error putting key %v with OID %s to Motr index %s: %s", key, oid, d.Idx, emotr)
+		log.Errorf("Error putting key %v with OID %s to Motr index %s: %s.", key, getOIDstr(oid), d.Idx, emotr)
 		return emotr
 	} else {
-		log.Debugf("Put key %v with OID %s to Motr index %s.", key, oid, d.Idx)
+		log.Debugf("Put key %v with OID %s to Motr index %s.", key, getOIDstr(oid), d.Idx)
 	}
 	if eldb := d.Ldb.Put(key.Bytes(), []byte{1}, &opt.WriteOptions{Sync: true}); eldb != nil {
 		log.Errorf("Error writing key %v to LevelDB: %s", key, eldb)
@@ -211,4 +213,9 @@ func (d *MotrDatastore) Batch(ctx context.Context) (ds.Batch, error) {
 
 func getOID(key ds.Key) []byte {
 	return hash128.Sum(key.Bytes())
+}
+
+func getOIDstr(oid []byte) string {
+	u := uint128.FromBytes(oid)
+	return fmt.Sprintf("0x%x:0x%x", u.Hi, u.Lo)
 }

@@ -34,10 +34,13 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"unsafe"
 
 	ds "github.com/ipfs/go-datastore"
 	logging "github.com/ipfs/go-log/v2"
+
+	"github.com/allisterb/go-ds-motr/uint128"
 )
 
 // Mkv provides key-value API to Motr
@@ -47,6 +50,7 @@ type Mkv struct {
 }
 
 var log = logging.Logger("motrds")
+var hash128 = fnv.New128()
 
 func uint128fid(u C.struct_m0_uint128) (f C.struct_m0_fid) {
 	f.f_container = u.u_hi
@@ -195,21 +199,21 @@ func (mkv *Mkv) doIdxOp(opcode uint32, key []byte, value []byte,
 // Put puts key-value into the index.
 func (mkv *Mkv) Put(key []byte, value []byte, update bool) error {
 	_, err := mkv.doIdxOp(C.M0_IC_PUT, key, value, update)
-	log.Debugf("Put key %s to Motr: %s", key, err)
+	log.Debugf("Put oid %s to Motr: %s", getOIDstr(key), err)
 	return err
 }
 
 // Get gets value from the index by key.
 func (mkv *Mkv) Get(key []byte) ([]byte, error) {
 	value, err := mkv.doIdxOp(C.M0_IC_GET, key, nil, false)
-	log.Debugf("Get key %s from Motr: %s", key, err)
+	log.Debugf("Get oid %s from Motr: %s", getOIDstr(key), err)
 	return value, err
 }
 
 // Delete deletes the record by key.
 func (mkv *Mkv) Delete(key []byte) error {
 	_, err := mkv.doIdxOp(C.M0_IC_DEL, key, nil, false)
-	log.Debugf("Delete key %s from Motr: %s", key, err)
+	log.Debugf("Delete oid %s from Motr: %s", getOIDstr(key), err)
 	return err
 }
 
@@ -293,6 +297,15 @@ func (mkv *Mkv) GetSize(key []byte) (int, error) {
 	} else {
 		return int(*v.ov_vec.v_count), nil
 	}
+}
+
+func getOID(key ds.Key) []byte {
+	return hash128.Sum(key.Bytes())
+}
+
+func getOIDstr(oid []byte) string {
+	u := uint128.FromBytes(oid)
+	return fmt.Sprintf("0x%x:0x%x", u.Hi, u.Lo)
 }
 
 // vi: sw=4 ts=4 expandtab ai
