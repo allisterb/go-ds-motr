@@ -72,7 +72,7 @@ func (d *MotrDatastore) Has(ctx context.Context, key ds.Key) (bool, error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
 	has, ehas := d.Ldb.Has(key.Bytes(), nil)
-	log.Debugf("Check for existence of key %s in LevelDB: (%v, %v).", string(key.Bytes()), has, ehas)
+	log.Debugf("Check for existence of key %s, OID %s in LevelDB: (%v, %v).", string(key.Bytes()), getOIDstr(getOID(key)), has, ehas)
 	return has, ehas
 }
 
@@ -80,7 +80,7 @@ func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) ([]byte, error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
 	hasldb, eldb := d.Ldb.Has(key.Bytes(), nil)
-	log.Debugf("Check for existence of key %s in LevelDB: (%v, %v).", string(key.Bytes()), hasldb, eldb)
+	log.Debugf("Check for existence of key %s, OID %s in LevelDB: (%v, %v).", string(key.Bytes()), getOIDstr(getOID(key)), hasldb, eldb)
 	if eldb != nil {
 		if eldb == leveldb.ErrNotFound {
 			return nil, ds.ErrNotFound
@@ -138,6 +138,7 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 				return query.Result{}, false
 			}
 			oid := hash128.Sum(i.Key())
+			log.Debugf("Yield object with key %s, OID %s from query.", i.Key(), getOIDstr(oid))
 			k := string(oid)
 			var size int
 			if _size, serr := mkv.GetSize(oid); serr != nil {
