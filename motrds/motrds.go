@@ -97,7 +97,7 @@ func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) ([]byte, error) {
 func (d *MotrDatastore) GetSize(ctx context.Context, key ds.Key) (size int, err error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
-	log.Debugf("Get size of object at key %s in Motr...", key)
+	//log.Debugf("Get size of object at key %s in Motr...", key)
 	return mkv.GetSize(getOID(key))
 }
 
