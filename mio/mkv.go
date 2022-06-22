@@ -199,21 +199,21 @@ func (mkv *Mkv) doIdxOp(opcode uint32, key []byte, value []byte,
 // Put puts key-value into the index.
 func (mkv *Mkv) Put(key []byte, value []byte, update bool) error {
 	_, err := mkv.doIdxOp(C.M0_IC_PUT, key, value, update)
-	log.Debugf("Put oid %s to Motr: %s", getOIDstr(key), err)
+	log.Debugf("        Put OID %s to Motr: (%v, %v)", getOIDstr(key), err == nil, err)
 	return err
 }
 
 // Get gets value from the index by key.
 func (mkv *Mkv) Get(key []byte) ([]byte, error) {
 	value, err := mkv.doIdxOp(C.M0_IC_GET, key, nil, false)
-	log.Debugf("Get oid %s from Motr: %s", getOIDstr(key), err)
+	log.Debugf("        Get OID %s from Motr: (%v, %v)", getOIDstr(key), err == nil, err)
 	return value, err
 }
 
 // Delete deletes the record by key.
 func (mkv *Mkv) Delete(key []byte) error {
 	_, err := mkv.doIdxOp(C.M0_IC_DEL, key, nil, false)
-	log.Debugf("Delete oid %s from Motr: %s", getOIDstr(key), err)
+	log.Debugf("        Delete OID %s from Motr: (%v, %v)", getOIDstr(key), err == nil, err)
 	return err
 }
 

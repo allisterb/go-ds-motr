@@ -174,11 +174,11 @@ func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err 
 		log.Debugf("Put key %v with OID %s to Motr index %s.", key, getOIDstr(oid), d.Idx)
 	}
 	if eldb := d.Ldb.Put(key.Bytes(), []byte{1}, &opt.WriteOptions{Sync: true}); eldb != nil {
-		log.Errorf("Error writing key %v to LevelDB: %s", key, eldb)
+		log.Errorf("Error putting key %v to LevelDB: %s", key, eldb)
 		mkv.Delete(getOID(key))
 		return eldb
 	} else {
-		log.Debugf("Wrote key %s to LevelDB.", key)
+		log.Debugf("Put key %v to LevelDB.", key)
 		return nil
 	}
 }
