@@ -94,8 +94,6 @@ import (
 	"sync"
 	"time"
 	"unsafe"
-
-	logging "github.com/ipfs/go-log/v2"
 )
 
 // Mio implements io.Reader / io.Writer interfaces for Motr.
@@ -121,8 +119,6 @@ type iov struct {
 	ch     chan slot
 	wg     sync.WaitGroup
 }
-
-var log = logging.Logger("mio")
 
 var verbose bool
 var threadsN int
@@ -254,6 +250,7 @@ func (mio *Mio) Open(id string, anySz ...uint64) error {
 	}
 
 	return mio.open(mio.objSz)
+
 }
 
 // Close closes Mio object and releases all the resources that were

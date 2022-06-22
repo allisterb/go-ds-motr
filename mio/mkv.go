@@ -37,6 +37,7 @@ import (
 	"unsafe"
 
 	ds "github.com/ipfs/go-datastore"
+	logging "github.com/ipfs/go-log/v2"
 )
 
 // Mkv provides key-value API to Motr
@@ -44,6 +45,8 @@ type Mkv struct {
 	idxID C.struct_m0_uint128
 	idx   *C.struct_m0_idx
 }
+
+var log = logging.Logger("motrds")
 
 func uint128fid(u C.struct_m0_uint128) (f C.struct_m0_fid) {
 	f.f_container = u.u_hi
@@ -58,8 +61,7 @@ func (mkv *Mkv) idxNew(id string) (err error) {
 	}
 	fid := uint128fid(mkv.idxID)
 	if C.m0_fid_tget(&fid) != C.m0_dix_fid_type.ft_id {
-		return fmt.Errorf("index fid must start with 0x%x in MSByte"+
-			", for example: 0x%x00000000000123:0x...",
+		return fmt.Errorf("index fid must start with 0x%x in MSByte, for example: 0x%x00000000000123:0x",
 			C.m0_dix_fid_type.ft_id, C.m0_dix_fid_type.ft_id)
 	}
 	mkv.idx = (*C.struct_m0_idx)(C.calloc(1, C.sizeof_struct_m0_idx))
@@ -193,18 +195,21 @@ func (mkv *Mkv) doIdxOp(opcode uint32, key []byte, value []byte,
 // Put puts key-value into the index.
 func (mkv *Mkv) Put(key []byte, value []byte, update bool) error {
 	_, err := mkv.doIdxOp(C.M0_IC_PUT, key, value, update)
+	log.Debugf("Put key %s to Motr: %s", key, err)
 	return err
 }
 
 // Get gets value from the index by key.
 func (mkv *Mkv) Get(key []byte) ([]byte, error) {
 	value, err := mkv.doIdxOp(C.M0_IC_GET, key, nil, false)
+	log.Debugf("Get key %s from Motr: %s", key, err)
 	return value, err
 }
 
 // Delete deletes the record by key.
 func (mkv *Mkv) Delete(key []byte) error {
 	_, err := mkv.doIdxOp(C.M0_IC_DEL, key, nil, false)
+	log.Debugf("Delete key %s from Motr: %s", key, err)
 	return err
 }
 

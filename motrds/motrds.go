@@ -166,17 +166,17 @@ func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err 
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
 	if emotr := mkv.Put(oid, value, true); emotr != nil {
-		log.Errorf("Error putting key %v with OID %v to Motr index %s: %s", key, oid, d.Idx, emotr)
+		log.Errorf("Error putting key %v with OID %s to Motr index %s: %s", key, oid, d.Idx, emotr)
 		return emotr
 	} else {
-		log.Debugf("Put key %v with OID %v to Motr index %s.", key, oid, d.Idx)
+		log.Debugf("Put key %v with OID %s to Motr index %s.", key, oid, d.Idx)
 	}
 	if eldb := d.Ldb.Put(key.Bytes(), []byte{1}, &opt.WriteOptions{Sync: true}); eldb != nil {
 		log.Errorf("Error writing key %v to LevelDB: %s", key, eldb)
 		mkv.Delete(getOID(key))
 		return eldb
 	} else {
-		log.Debugf("Wrote key %v to LevelDB.", key)
+		log.Debugf("Wrote key %s to LevelDB.", key)
 		return nil
 	}
 }
@@ -185,10 +185,10 @@ func (d *MotrDatastore) Delete(ctx context.Context, key ds.Key) (err error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
 	if eldb := d.Ldb.Delete(key.Bytes(), &opt.WriteOptions{Sync: true}); eldb != nil {
-		log.Errorf("Error deleting key %v from LevelDB: %s", key, eldb)
+		log.Errorf("Error deleting key %s from LevelDB: %s", key, eldb)
 		return eldb
 	} else {
-		log.Debugf("Deleted key %v from LevelDB.", key)
+		log.Debugf("Deleted key %s from LevelDB.", key)
 	}
 	return mkv.Delete(getOID(key))
 }
