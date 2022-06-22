@@ -73,7 +73,7 @@ func (d *MotrDatastore) Has(ctx context.Context, key ds.Key) (bool, error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
 	has, ehas := d.Ldb.Has(key.Bytes(), nil)
-	log.Debugf("Check for existence of key %s, OID %s in LevelDB: (%v, %v).", string(key.Bytes()), getOIDstr(getOID(key)), has, ehas)
+	log.Debugf("Check for existence of key %s (OID %s) in LevelDB: (%v, %v).", string(key.Bytes()), getOIDstr(getOID(key)), has, ehas)
 	return has, ehas
 }
 
@@ -81,7 +81,7 @@ func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) ([]byte, error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
 	hasldb, eldb := d.Ldb.Has(key.Bytes(), nil)
-	log.Debugf("Check for existence of key %s, OID %s in LevelDB: (%v, %v).", string(key.Bytes()), getOIDstr(getOID(key)), hasldb, eldb)
+	log.Debugf("Check for existence of key %s (OID %s) in LevelDB: (%v, %v).", string(key.Bytes()), getOIDstr(getOID(key)), hasldb, eldb)
 	if eldb != nil {
 		if eldb == leveldb.ErrNotFound {
 			return nil, ds.ErrNotFound
@@ -107,6 +107,7 @@ func (d *MotrDatastore) GetSize(ctx context.Context, key ds.Key) (size int, err 
 func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results, error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
+	log.Debugf("Executing query %s.", q.String())
 	var rnge *util.Range
 	// make a copy of the query for the fallback naive query implementation.
 	// don't modify the original so res.Query() returns the correct results.
@@ -139,7 +140,7 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 				return query.Result{}, false
 			}
 			oid := hash128.Sum(i.Key())
-			log.Debugf("Yield object with key %s, OID %s from query.", i.Key(), getOIDstr(oid))
+			log.Debugf("Yield object with key %s (OID %s) from query.", i.Key(), getOIDstr(oid))
 			k := string(oid)
 			var size int
 			if _size, serr := mkv.GetSize(oid); serr != nil {
@@ -170,17 +171,15 @@ func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err 
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
 	if emotr := mkv.Put(oid, value, true); emotr != nil {
-		log.Errorf("Error putting key %v with OID %s to Motr index %s: %s.", key, getOIDstr(oid), d.Idx, emotr)
+		log.Errorf("Error putting key %v (OID) %s to Motr index %s: %s.", key, getOIDstr(oid), d.Idx, emotr)
 		return emotr
-	} else {
-		log.Debugf("Put key %v with OID %s to Motr index %s.", key, getOIDstr(oid), d.Idx)
 	}
 	if eldb := d.Ldb.Put(key.Bytes(), []byte{1}, &opt.WriteOptions{Sync: true}); eldb != nil {
 		log.Errorf("Error putting key %v to LevelDB: %s", key, eldb)
 		mkv.Delete(getOID(key))
 		return eldb
 	} else {
-		log.Debugf("Put key %v to LevelDB.", key)
+		log.Debugf("Put key %v (OID %s) to LevelDB and Motr index %s.", key, getOIDstr(getOID(key)), d.Idx)
 		return nil
 	}
 }
@@ -189,10 +188,10 @@ func (d *MotrDatastore) Delete(ctx context.Context, key ds.Key) (err error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
 	if eldb := d.Ldb.Delete(key.Bytes(), &opt.WriteOptions{Sync: true}); eldb != nil {
-		log.Errorf("Error deleting key %s from LevelDB: %s", key, eldb)
+		log.Errorf("Error deleting key %v (OID %s) from LevelDB: %s", key, getOIDstr(getOID(key)), eldb)
 		return eldb
 	} else {
-		log.Debugf("Deleted key %s from LevelDB.", key)
+		log.Debugf("Deleted key %v (OID %s) from LevelDB.", key, getOIDstr(getOID(key)))
 	}
 	return mkv.Delete(getOID(key))
 }
