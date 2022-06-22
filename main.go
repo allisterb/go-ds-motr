@@ -19,9 +19,14 @@ type OidCmd struct {
 	Parse bool   `help:"Parse name as 128-bit object id." short:"P"`
 }
 
-type IdxCmd struct {
-	Name   string `arg:"" name:"name" help:"Name of index to create."`
-	Delete bool   `help:"Parse name as 128-bit object id." short:"P"`
+type IndexCmd struct {
+	LocalEP    string `required:"" name:"local" short:"L" help:"Motr local endpoint address."`
+	HaxEP      string `required:"" name:"hax" short:"H" help:"Motr local endpoint address."`
+	ProfileFid string `required:"" name:"profile" short:"C" help:"Cluster profile fid."`
+	ProcessFid string `required:"" name:"process" short:"P" help:"Local process fid."`
+	Name       string `arg:"" name:"name" help:"Name of index to create or delete."`
+	Create     bool   `help:"Create an index with this name."`
+	Delete     bool   `help:"Delete the index with this name."`
 }
 
 type StoreCmd struct {
@@ -46,6 +51,7 @@ var mkv mio.Mkv
 var CLI struct {
 	Debug bool     `help:"Enable debug mode."`
 	Oid   OidCmd   `cmd:"" help:"Generate or parse Motr object id."`
+	Index IndexCmd `cmd:"" help:"Create an index in the Motr key-value store."`
 	Store StoreCmd `cmd:"" help:"Store an object in the Motr key-value store."`
 }
 
@@ -104,6 +110,21 @@ func (s *StoreCmd) Run(ctx *kong.Context) error {
 		}
 	} else {
 		createObject(s.Idx, s.Key, []byte(s.Value), s.Update)
+	}
+	return nil
+}
+
+func (s *IndexCmd) Run(ctx *kong.Context) error {
+	if rinit, einit := mio.Init(&s.LocalEP, &s.HaxEP, &s.ProfileFid, &s.ProcessFid, 1, false); !rinit {
+		log.Fatalf("Error initializing Motr client: %s", einit)
+	} else {
+		log.Info(("Initialized Motr client."))
+	}
+	defer mkv.Close()
+	if s.Create {
+		createIndex(s.Name)
+	} else {
+
 	}
 	return nil
 }
@@ -193,6 +214,7 @@ func getObjectSize(idx string, key string) {
 		log.Infof("The size of object at key %s in index %s is %v.", key, idx, size)
 	}
 }
+
 func contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
@@ -200,6 +222,14 @@ func contains(s []string, e string) bool {
 		}
 	}
 	return false
+}
+
+func createIndex(name string) {
+	if err := mkv.Open(name, true); err != nil {
+		log.Fatalf("Failed to open or create index %v: %v", name, err)
+	} else {
+		log.Infof("Created or opened existing Motr key-value index %s.", name)
+	}
 }
 
 // vi: sw=4 ts=4 expandtab ai
