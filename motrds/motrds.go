@@ -18,6 +18,7 @@ import (
 )
 
 var _ ds.Datastore = (*MotrDatastore)(nil)
+var _ ds.Batching = (*MotrDatastore)(nil)
 
 type MotrDatastore struct {
 	Config
