@@ -23,6 +23,7 @@ import (
 
 var _ ds.Datastore = (*MotrDatastore)(nil)
 var _ ds.Batching = (*MotrDatastore)(nil)
+var _ ds.Batch = (*MotrDatastore)(nil)
 var _ ds.PersistentDatastore = (*MotrDatastore)(nil)
 
 type MotrDatastore struct {
@@ -145,7 +146,6 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 				return query.Result{}, false
 			}
 			oid := hash128.Sum(i.Key())
-			log.Debugf("Yield object with key %s (OID %s) from query.", i.Key(), getOIDstr(oid))
 			k := string(oid)
 			var size int
 			if _size, serr := mkv.GetSize(oid); serr != nil {
@@ -157,8 +157,11 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 			if !q.KeysOnly {
 				if v, eval := mkv.Get(oid); eval == nil {
 					e.Value = v
+				} else {
+					log.Errorf("Error retrieving OID %s from Motr: %v", getOIDstr(oid), eval)
 				}
 			}
+			log.Debugf("Yield object with key %s (OID %s) from query.", i.Key(), getOIDstr(oid))
 			return query.Result{Entry: e}, true
 		},
 		Close: func() error {
