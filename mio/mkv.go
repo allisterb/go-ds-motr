@@ -271,7 +271,7 @@ func (mkv *Mkv) GetSize(key []byte) (int, error) {
 	}
 	defer C.m0_bufvec_free(&v) // cleanup buffer after GET
 
-	defer log.Debugf("GetSize end")
+	defer log.Debugf("GetSize end 2")
 
 	*k.ov_buf = unsafe.Pointer(&key[0])
 	*k.ov_vec.v_count = C.ulong(len(key))
