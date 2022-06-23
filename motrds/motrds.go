@@ -1,9 +1,13 @@
+//
+
 package motrds
 
 import (
 	"context"
 	"fmt"
 	"hash/fnv"
+	"os"
+	"path/filepath"
 	"sync"
 
 	ds "github.com/ipfs/go-datastore"
@@ -19,6 +23,7 @@ import (
 
 var _ ds.Datastore = (*MotrDatastore)(nil)
 var _ ds.Batching = (*MotrDatastore)(nil)
+var _ ds.PersistentDatastore = (*MotrDatastore)(nil)
 
 type MotrDatastore struct {
 	Config
@@ -107,7 +112,7 @@ func (d *MotrDatastore) GetSize(ctx context.Context, key ds.Key) (size int, err 
 func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results, error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
-	log.Debugf("Executing query %s.", q.String())
+	log.Debugf("Executing query %s...", q.String())
 	var rnge *util.Range
 	// make a copy of the query for the fallback naive query implementation.
 	// don't modify the original so res.Query() returns the correct results.
@@ -198,6 +203,32 @@ func (d *MotrDatastore) Delete(ctx context.Context, key ds.Key) (err error) {
 
 func (d *MotrDatastore) Sync(ctx context.Context, prefix ds.Key) error {
 	return nil
+}
+
+// DiskUsage returns the current disk size used by this levelDB.
+// For in-mem datastores, it will return 0.
+func (d *MotrDatastore) DiskUsage(ctx context.Context) (uint64, error) {
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
+	if d.LevelDBPath == "" { // in-mem
+		return 0, nil
+	}
+
+	var du uint64
+
+	err := filepath.Walk(d.LevelDBPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		du += uint64(info.Size())
+		return nil
+	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return du, nil
 }
 
 func (d *MotrDatastore) Close() error {

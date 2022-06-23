@@ -23,4 +23,4 @@ go.work
 plugin.o
 go-ds-motr
 m0trace*
-ipfs.log
+*.log
