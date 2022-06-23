@@ -23,7 +23,6 @@ import (
 
 var _ ds.Datastore = (*MotrDatastore)(nil)
 var _ ds.Batching = (*MotrDatastore)(nil)
-var _ ds.Batch = (*MotrDatastore)(nil)
 var _ ds.PersistentDatastore = (*MotrDatastore)(nil)
 
 type MotrDatastore struct {
