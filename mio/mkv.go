@@ -259,7 +259,7 @@ func (mkv *Mkv) Has(key []byte) (bool, error) {
 }
 
 func (mkv *Mkv) GetSize(key []byte) (int, error) {
-	log.Debugf("GetSize")
+	log.Debugf("GetSize init")
 	var k, v C.struct_m0_bufvec
 	if C.m0_bufvec_empty_alloc(&k, 1) != 0 {
 		return 0, errors.New("failed to allocate key bufvec")
@@ -270,6 +270,8 @@ func (mkv *Mkv) GetSize(key []byte) (int, error) {
 		return 0, errors.New("failed to allocate value bufvec")
 	}
 	defer C.m0_bufvec_free(&v) // cleanup buffer after GET
+
+	defer log.Debugf("GetSize end")
 
 	*k.ov_buf = unsafe.Pointer(&key[0])
 	*k.ov_vec.v_count = C.ulong(len(key))
@@ -296,7 +298,8 @@ func (mkv *Mkv) GetSize(key []byte) (int, error) {
 	} else if rcI != 0 {
 		return 0, ds.ErrNotFound
 	} else {
-		return int(*v.ov_vec.v_count), nil
+		size := int(*v.ov_vec.v_count)
+		return size, nil
 	}
 }
 
