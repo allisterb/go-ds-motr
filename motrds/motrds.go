@@ -155,7 +155,7 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 			}
 			e := query.Entry{Key: k, Size: size}
 			if !q.KeysOnly {
-				if v, eval := mkv.Get(oid); eval != nil {
+				if v, eval := mkv.Get(oid); eval == nil {
 					e.Value = v
 				}
 			}
