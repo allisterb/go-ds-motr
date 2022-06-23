@@ -71,7 +71,7 @@ func NewMotrDatastore(conf Config) (*MotrDatastore, error) {
 		ldb = *_ldb
 		log.Infof("Opened LevelDB database at %v.", conf.LevelDBPath)
 	}
-	return &MotrDatastore{conf, mkv, ldb, new(sync.RWMutex)}, nil
+	return &MotrDatastore{conf, mkv, ldb, &sync.RWMutex{}}, nil
 }
 
 func (d *MotrDatastore) Has(ctx context.Context, key ds.Key) (bool, error) {
