@@ -62,7 +62,7 @@ func NewMotrDatastore(conf Config) (*MotrDatastore, error) {
 		log.Infof("Initialized Motr key-value index %v.", conf.Idx)
 
 	}
-	ldbopt := new(opt.Options)
+	ldbopt := &opt.Options{}
 	var ldb leveldb.DB
 	if _ldb, eldb := leveldb.OpenFile(conf.LevelDBPath, ldbopt); eldb != nil {
 		log.Errorf("Failed to open LevelDB database at %s.", conf.LevelDBPath)
