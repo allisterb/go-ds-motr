@@ -110,8 +110,8 @@ func (d *MotrDatastore) GetSize(ctx context.Context, key ds.Key) (size int, err 
 }
 
 func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results, error) {
-	//d.Lock.RLock()
-	//defer d.Lock.RUnlock()
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
 	log.Debugf("Executing query %s...", q.String())
 	var rnge *util.Range
 	// make a copy of the query for the fallback naive query implementation.
@@ -139,16 +139,16 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 	}
 	r := query.ResultsFromIterator(q, query.Iterator{
 		Next: func() (query.Result, bool) {
-			//d.Lock.RLock()
-			//defer d.Lock.RUnlock()
+			d.Lock.RLock()
+			defer d.Lock.RUnlock()
 			if !next() {
 				return query.Result{}, false
 			}
 			oid := hash128.Sum(i.Key())
-			k := string(oid)
+			k := string(i.Key())
 			var size int
 			if _size, serr := mkv.GetSize(oid); serr != nil {
-				return query.Result{}, true
+				return query.Result{Error: serr}, true
 			} else {
 				size = _size
 			}
@@ -158,14 +158,15 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 					e.Value = v
 				} else {
 					log.Errorf("Error retrieving OID %s from Motr: %v", getOIDstr(oid), eval)
+					return query.Result{Error: eval}, true
 				}
 			}
 			log.Debugf("Yield object with key %s (OID %s) from query.", i.Key(), getOIDstr(oid))
 			return query.Result{Entry: e}, true
 		},
 		Close: func() error {
-			//d.Lock.RLock()
-			//defer d.Lock.RUnlock()
+			d.Lock.RLock()
+			defer d.Lock.RUnlock()
 			i.Release()
 			return nil
 		},
