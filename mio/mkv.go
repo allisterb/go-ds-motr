@@ -199,7 +199,7 @@ func (mkv *Mkv) doIdxOp(opcode uint32, key []byte, value []byte,
 // Put puts key-value into the index.
 func (mkv *Mkv) Put(key []byte, value []byte, update bool) error {
 	_, err := mkv.doIdxOp(C.M0_IC_PUT, key, value, update)
-	log.Debugf("        Put OID %s to Motr: (%v, %v).", getOIDstr(key), (err == nil), err)
+	log.Debugf("        Put OID %s with size %v bytes to Motr: (%v, %v).", getOIDstr(key), len(value), (err == nil), err)
 	return err
 }
 
