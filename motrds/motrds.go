@@ -141,7 +141,7 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 		Next: func() (query.Result, bool) {
 			d.Lock.RLock()
 			defer d.Lock.RUnlock()
-			if !next() {
+			if !next() || i.Key() == nil {
 				return query.Result{}, false
 			}
 			oid := hash128.Sum(i.Key())
