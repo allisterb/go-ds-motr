@@ -172,7 +172,7 @@ func createOID(name string) {
 }
 
 func createObject(idx string, key string, data []byte, update bool) {
-	if pget := mkv.Put(hash128.Sum(hash128.Sum([]byte(key))), data, update); pget != nil {
+	if pget := mkv.Put(hash128.Sum([]byte(key)), data, update); pget != nil {
 		log.Errorf("Error putting object at key %s in index %s: %s.", key, idx, pget)
 	} else {
 		log.Infof("Put object at key %s in index %s", key, idx)
@@ -189,7 +189,7 @@ func deleteObject(idx string, key string) {
 }
 
 func selectObject(idx string, key string) {
-	oid := hash128.Sum(hash128.Sum([]byte(key)))
+	oid := hash128.Sum([]byte(key))
 	oid128 := uint128.FromBytes(oid)
 	if rhas, ehas := mkv.Has(oid); rhas {
 		if r, eget := mkv.Get(oid); eget != nil {
@@ -207,9 +207,9 @@ func selectObject(idx string, key string) {
 }
 
 func getObjectSize(idx string, key string) {
-	oid := hash128.Sum(hash128.Sum([]byte(key)))
+	oid := hash128.Sum([]byte(key))
 	if size, esize := mkv.GetSize(oid); esize != nil {
-		log.Fatalf("Error getting size of object at key %s in index %s.", key, idx)
+		log.Fatalf("Error getting size of object at key %s in index %s: %v.", key, idx, esize)
 	} else {
 		log.Infof("The size of object at key %s in index %s is %v.", key, idx, size)
 	}
