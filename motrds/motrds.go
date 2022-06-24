@@ -156,6 +156,7 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 			}
 			e := query.Entry{Key: k, Size: size}
 			if !q.KeysOnly {
+				log.Debugf("Iterator get object OID %s from Motr.", getOIDstr(oid))
 				if v, eval := mkv.Get(oid); eval == nil {
 					e.Value = v
 				} else {
