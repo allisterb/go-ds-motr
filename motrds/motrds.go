@@ -146,6 +146,7 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 			}
 			oid := hash128.Sum(i.Key())
 			k := string(i.Key())
+			log.Debugf("Begin yield object with key %s (OID %s) from query.", k, getOIDstr(oid))
 			var size int
 			if _size, serr := mkv.GetSize(oid); serr != nil {
 				return query.Result{Error: serr}, true
@@ -161,7 +162,7 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 					return query.Result{Error: eval}, true
 				}
 			}
-			log.Debugf("Yield object with key %s (OID %s) from query.", i.Key(), getOIDstr(oid))
+			log.Debugf("End yield object with key %s (OID %s) from query.", k, getOIDstr(oid))
 			return query.Result{Entry: e}, true
 		},
 		Close: func() error {
