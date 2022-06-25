@@ -24,3 +24,5 @@ plugin.o
 go-ds-motr
 m0trace*
 *.log
+*.flac
+*.webm

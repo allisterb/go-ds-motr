@@ -67,7 +67,7 @@ func main() {
 		figlet4go.ColorYellow,
 		figlet4go.ColorCyan,
 	}
-	renderStr, _ := ascii.RenderOpts("Go-Motr-Ds", options)
+	renderStr, _ := ascii.RenderOpts("Go-Ds-Motr", options)
 	fmt.Print(renderStr)
 	ctx := kong.Parse(&CLI)
 	if contains(ctx.Args, "--debug") {
