@@ -73,16 +73,16 @@ func NewMotrDatastore(conf Config) (*MotrDatastore, error) {
 }
 
 func (d *MotrDatastore) Has(ctx context.Context, key ds.Key) (bool, error) {
-	d.Lock.RLock()
-	defer d.Lock.RUnlock()
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
 	has, ehas := d.Ldb.Has(key.Bytes(), nil)
 	log.Debugf("Check for existence of key %s (OID %s) in LevelDB: (%v, %v).", string(key.Bytes()), getOIDstr(getOID(key)), has, ehas)
 	return has, ehas
 }
 
 func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) ([]byte, error) {
-	d.Lock.RLock()
-	defer d.Lock.RUnlock()
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
 	hasldb, eldb := d.Ldb.Has(key.Bytes(), nil)
 	log.Debugf("Check for existence of key %s (OID %s) in LevelDB: (%v, %v).", string(key.Bytes()), getOIDstr(getOID(key)), hasldb, eldb)
 	if eldb != nil {
@@ -101,8 +101,8 @@ func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) ([]byte, error) {
 }
 
 func (d *MotrDatastore) GetSize(ctx context.Context, key ds.Key) (size int, err error) {
-	d.Lock.RLock()
-	defer d.Lock.RUnlock()
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
 	//log.Debugf("Get size of object at key %s in Motr...", key)
 	return mkv.GetSize(getOID(key))
 }
@@ -214,8 +214,8 @@ func (d *MotrDatastore) Sync(ctx context.Context, prefix ds.Key) error {
 // DiskUsage returns the current disk size used by this levelDB.
 // For in-mem datastores, it will return 0.
 func (d *MotrDatastore) DiskUsage(ctx context.Context) (uint64, error) {
-	d.Lock.RLock()
-	defer d.Lock.RUnlock()
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
 	if d.LevelDBPath == "" { // in-mem
 		return 0, nil
 	}
