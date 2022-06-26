@@ -107,6 +107,8 @@ func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) ([]byte, error) {
 }
 
 func (d *MotrDatastore) getSize(key []byte) (int, error) {
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
 	h, ehas := d.Ldb.Has(key, &opt.ReadOptions{})
 	if ehas == leveldb.ErrNotFound {
 		return -1, ds.ErrNotFound
@@ -119,14 +121,14 @@ func (d *MotrDatastore) getSize(key []byte) (int, error) {
 	if esz != nil {
 		return -1, esz
 	}
-	sz := new(int)
+	sz := new(uint64)
 	buff := bytes.NewBuffer(bsz)
 	binary.Read(buff, binary.BigEndian, &sz)
-	return *sz, nil
+	return int(*sz), nil
 }
 func (d *MotrDatastore) GetSize(ctx context.Context, key ds.Key) (size int, err error) {
-	d.Lock.RLock()
-	defer d.Lock.RUnlock()
+	//d.Lock.RLock()
+	//defer d.Lock.RUnlock()
 	//log.Debugf("Get size of object at key %s in Motr...", key)
 	return d.getSize(key.Bytes())
 	//return mkv.GetSize(getOID(key))
