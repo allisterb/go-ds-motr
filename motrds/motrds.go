@@ -1,9 +1,7 @@
 package motrds
 
 import (
-	"bytes"
 	"context"
-	"encoding/binary"
 	"fmt"
 	"hash/fnv"
 	"os"
@@ -106,29 +104,9 @@ func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) ([]byte, error) {
 	}
 }
 
-func (d *MotrDatastore) getSize(key []byte) (int, error) {
+func (d *MotrDatastore) GetSize(ctx context.Context, key ds.Key) (size int, err error) {
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
-	h, ehas := d.Ldb.Has(key, &opt.ReadOptions{})
-	if ehas == leveldb.ErrNotFound {
-		return -1, ds.ErrNotFound
-	} else {
-		if !h {
-			return -1, ehas
-		}
-	}
-	bsz, esz := d.Ldb.Get(key, &opt.ReadOptions{})
-	if esz != nil {
-		return -1, esz
-	}
-	sz := new(uint64)
-	buff := bytes.NewBuffer(bsz)
-	binary.Read(buff, binary.BigEndian, &sz)
-	return int(*sz), nil
-}
-func (d *MotrDatastore) GetSize(ctx context.Context, key ds.Key) (size int, err error) {
-	//d.Lock.RLock()
-	//defer d.Lock.RUnlock()
 	//log.Debugf("Get size of object at key %s in Motr...", key)
 	//return d.getSize(key.Bytes())
 	return mkv.GetSize(getOID(key))
@@ -212,12 +190,8 @@ func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err 
 		log.Errorf("Error putting key %v (OID) %s to Motr index %s: %s.", key, getOIDstr(oid), d.Idx, emotr)
 		return emotr
 	}
-	//buff := make([]byte, 8)
-	//l := uint64(len(value))
-	//binary.BigEndian.PutUint64(buff, l)
 	if eldb := d.Ldb.Put(key.Bytes(), []byte{1}, &opt.WriteOptions{Sync: true}); eldb != nil {
 		log.Errorf("Error putting key %v to LevelDB: %s", key, eldb)
-		mkv.Delete(getOID(key))
 		return eldb
 	} else {
 		log.Debugf("End (success) put key %v (OID %s) to LevelDB and Motr index %s.", key, getOIDstr(getOID(key)), d.Idx)
