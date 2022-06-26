@@ -103,9 +103,13 @@ func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) ([]byte, error) {
 }
 
 func (d *MotrDatastore) getSize(key []byte) (int, error) {
+	h, ehas := d.Ldb.Has(key, &opt.ReadOptions{})
+	if !h {
+		return -1, ehas
+	}
 	bsz, esz := d.Ldb.Get(key, &opt.ReadOptions{})
 	if esz != nil {
-		return 0, esz
+		return -1, esz
 	}
 	sz := new(int)
 	buff := bytes.NewBuffer(bsz)
