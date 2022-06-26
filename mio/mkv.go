@@ -261,12 +261,12 @@ func (mkv *Mkv) Has(key []byte) (bool, error) {
 func (mkv *Mkv) GetSize(key []byte) (int, error) {
 	var k, v C.struct_m0_bufvec
 	if C.m0_bufvec_empty_alloc(&k, 1) != 0 {
-		return 0, errors.New("failed to allocate key bufvec")
+		return -1, errors.New("failed to allocate key bufvec")
 	}
 	defer C.m0_bufvec_free2(&k)
 
 	if C.m0_bufvec_empty_alloc(&v, 1) != 0 {
-		return 0, errors.New("failed to allocate value bufvec")
+		return -1, errors.New("failed to allocate value bufvec")
 	}
 	defer C.m0_bufvec_free(&v) // cleanup buffer after GET
 
@@ -278,7 +278,7 @@ func (mkv *Mkv) GetSize(key []byte) (int, error) {
 	var op *C.struct_m0_op
 	rc := C.m0_idx_op(mkv.idx, C.M0_IC_GET, &k, vPtr, &rcI, flags, &op)
 	if rc != 0 {
-		return 0, fmt.Errorf("failed to init index op: %d", rc)
+		return -1, fmt.Errorf("failed to init index op: %d", rc)
 	}
 
 	C.m0_op_launch(&op, 1)
