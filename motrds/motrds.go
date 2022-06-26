@@ -1,7 +1,9 @@
 package motrds
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"hash/fnv"
 	"os"
@@ -100,11 +102,22 @@ func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) ([]byte, error) {
 	}
 }
 
+func (d *MotrDatastore) getSize(key []byte) (int, error) {
+	bsz, esz := d.Ldb.Get(key, &opt.ReadOptions{})
+	if esz != nil {
+		return 0, esz
+	}
+	sz := new(int)
+	buff := bytes.NewBuffer(bsz)
+	binary.Read(buff, binary.BigEndian, &sz)
+	return *sz, nil
+}
 func (d *MotrDatastore) GetSize(ctx context.Context, key ds.Key) (size int, err error) {
 	//d.Lock.RLock()
 	//defer d.Lock.RUnlock()
 	//log.Debugf("Get size of object at key %s in Motr...", key)
-	return mkv.GetSize(getOID(key))
+	return d.getSize(key.Bytes())
+	//return mkv.GetSize(getOID(key))
 }
 
 // Query the LevelDB metadata store for Motr keys and retrieve objects from Motr when data is requested
@@ -147,7 +160,7 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 			k := string(i.Key())
 			log.Debugf("Begin yield object with key %s (OID %s) from query.", k, getOIDstr(oid))
 			var size int
-			if _size, serr := mkv.GetSize(oid); serr != nil {
+			if _size, serr := d.getSize(i.Key()); serr != nil {
 				log.Errorf("Error getting size of object OID %s from Motr: %v.", getOIDstr(oid), serr)
 				return query.Result{Error: serr}, true
 			} else {
@@ -185,7 +198,10 @@ func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err 
 		log.Errorf("Error putting key %v (OID) %s to Motr index %s: %s.", key, getOIDstr(oid), d.Idx, emotr)
 		return emotr
 	}
-	if eldb := d.Ldb.Put(key.Bytes(), []byte{1}, &opt.WriteOptions{Sync: true}); eldb != nil {
+	buff := make([]byte, 8)
+	l := uint64(len(value))
+	binary.BigEndian.PutUint64(buff, l)
+	if eldb := d.Ldb.Put(key.Bytes(), buff, &opt.WriteOptions{Sync: true}); eldb != nil {
 		log.Errorf("Error putting key %v to LevelDB: %s", key, eldb)
 		mkv.Delete(getOID(key))
 		return eldb
