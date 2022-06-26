@@ -151,7 +151,13 @@ func (mkv *Mkv) doIdxOp(opcode uint32, key []byte, value []byte,
 	*k.ov_buf = unsafe.Pointer(&key[0])
 	*k.ov_vec.v_count = C.ulong(len(key))
 	if opcode == C.M0_IC_PUT {
-		*v.ov_buf = unsafe.Pointer(&value[0])
+		var p unsafe.Pointer
+		if len(value) > 0 {
+			p = unsafe.Pointer(&value[0])
+		} else {
+			p = unsafe.Pointer(&value)
+		}
+		*v.ov_buf = p
 		*v.ov_vec.v_count = C.ulong(len(value))
 	}
 
