@@ -291,9 +291,9 @@ func (mkv *Mkv) GetSize(key []byte) (int, error) {
 	C.m0_op_free(op)
 
 	if rc != 0 {
-		return 0, fmt.Errorf("op failed: %d", rc)
+		return -1, fmt.Errorf("op failed: %d", rc)
 	} else if rcI != 0 {
-		return 0, ds.ErrNotFound
+		return -1, ds.ErrNotFound
 	} else {
 		size := int(*v.ov_vec.v_count)
 		return size, nil
