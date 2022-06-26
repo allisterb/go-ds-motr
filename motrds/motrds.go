@@ -79,7 +79,11 @@ func (d *MotrDatastore) Has(ctx context.Context, key ds.Key) (bool, error) {
 	//defer d.Lock.RUnlock()
 	has, ehas := d.Ldb.Has(key.Bytes(), nil)
 	log.Debugf("Check for existence of key %s (OID %s) in LevelDB: (%v, %v).", string(key.Bytes()), getOIDstr(getOID(key)), has, ehas)
-	return has, ehas
+	if ehas == leveldb.ErrNotFound {
+		return false, nil
+	} else {
+		return has, ehas
+	}
 }
 
 func (d *MotrDatastore) Get(ctx context.Context, key ds.Key) ([]byte, error) {
