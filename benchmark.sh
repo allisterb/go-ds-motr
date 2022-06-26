@@ -40,3 +40,5 @@ else
    echo Downloading 06 Video 02.webm...
    wget --no-check-certificate https://go-ds-motr-bmark.us-southeast-1.linodeobjects.com/06%20Video%2002.webm
 fi
+
+
