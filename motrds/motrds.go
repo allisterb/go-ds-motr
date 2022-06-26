@@ -174,7 +174,7 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 			k := string(i.Key())
 			log.Debugf("Begin yield object with key %s (OID %s) from query.", k, getOIDstr(oid))
 			var size int
-			if _size, serr := mkv.GetSize(i.Key()); serr != nil {
+			if _size, serr := mkv.GetSize(oid); serr != nil {
 				log.Errorf("Error getting size of object OID %s from Motr: %v.", getOIDstr(oid), serr)
 				return query.Result{Error: serr}, true
 			} else {
