@@ -50,7 +50,7 @@ func NewMotrDatastore(conf Config) (*MotrDatastore, error) {
 		log.Errorf("Failed to initialize Motr client: %s.", einit)
 		return nil, einit
 	} else {
-		log.Infof("Initialized Motr client.")
+		log.Infof("Initialized Motr client for local endpoint address: %s, HA address: %s, cluster profile FID: %s, local process FID: %s.", &conf.LocalAddr, &conf.HaxAddr, &conf.ProfileFid, &conf.LocalProcessFid)
 	}
 
 	if eidx := mkv.Open(conf.Idx, false); eidx != nil {
@@ -107,9 +107,10 @@ func (d *MotrDatastore) GetSize(ctx context.Context, key ds.Key) (size int, err 
 	return mkv.GetSize(getOID(key))
 }
 
+// Query the LevelDB metadata store for Motr keys and retrieve objects from Motr when data is requested
 func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results, error) {
-	d.Lock.RLock()
-	defer d.Lock.RUnlock()
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
 	log.Debugf("Executing query %s...", q.String())
 	var rnge *util.Range
 	// make a copy of the query for the fallback naive query implementation.
@@ -137,8 +138,8 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 	}
 	r := query.ResultsFromIterator(q, query.Iterator{
 		Next: func() (query.Result, bool) {
-			d.Lock.RLock()
-			defer d.Lock.RUnlock()
+			d.Lock.Lock()
+			defer d.Lock.Unlock()
 			if !next() || i.Key() == nil {
 				return query.Result{}, false
 			}
@@ -154,20 +155,20 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 			}
 			e := query.Entry{Key: k, Size: size}
 			if !q.KeysOnly {
-				log.Debugf("Iterator get object OID %s from Motr.", getOIDstr(oid))
+				log.Debugf("Results iterator get object OID %s from Motr.", getOIDstr(oid))
 				if v, eval := mkv.Get(oid); eval == nil {
 					e.Value = v
 				} else {
-					log.Errorf("Error retrieving OID %s from Motr: %v", getOIDstr(oid), eval)
+					log.Errorf("Error retrieving object OID %s from Motr: %v", getOIDstr(oid), eval)
 					return query.Result{Error: eval}, true
 				}
 			}
-			log.Debugf("End yield object with key %s (OID %s) from query.", k, getOIDstr(oid))
+			log.Debugf("End (success) yield object with key %s (OID %s) from query.", k, getOIDstr(oid))
 			return query.Result{Entry: e}, true
 		},
 		Close: func() error {
-			d.Lock.RLock()
-			defer d.Lock.RUnlock()
+			d.Lock.Lock()
+			defer d.Lock.Unlock()
 			i.Release()
 			return nil
 		},
@@ -179,6 +180,7 @@ func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err 
 	oid := getOID(key)
 	d.Lock.Lock()
 	defer d.Lock.Unlock()
+	log.Debugf("Begin put key %v (OID %s) to LevelDB and Motr index %s.", key, getOIDstr(getOID(key)), d.Idx)
 	if emotr := mkv.Put(oid, value, true); emotr != nil {
 		log.Errorf("Error putting key %v (OID) %s to Motr index %s: %s.", key, getOIDstr(oid), d.Idx, emotr)
 		return emotr
@@ -188,7 +190,7 @@ func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err 
 		mkv.Delete(getOID(key))
 		return eldb
 	} else {
-		log.Debugf("Put key %v (OID %s) to LevelDB and Motr index %s.", key, getOIDstr(getOID(key)), d.Idx)
+		log.Debugf("End (success) put key %v (OID %s) to LevelDB and Motr index %s.", key, getOIDstr(getOID(key)), d.Idx)
 		return nil
 	}
 }
