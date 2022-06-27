@@ -264,7 +264,6 @@ func (mkv *Mkv) Has(key []byte) (bool, error) {
 	}
 }
 
-/*
 func (mkv *Mkv) GetSize(key []byte) (int, error) {
 	var k, v C.struct_m0_bufvec
 	if C.m0_bufvec_empty_alloc(&k, 1) != 0 {
@@ -311,8 +310,8 @@ func (mkv *Mkv) GetSize(key []byte) (int, error) {
 		return size, nil
 	}
 }
-*/
 
+/*
 func (mkv *Mkv) GetSize(key []byte) (int, error) {
 	if v, eget := mkv.Get(key); eget != nil {
 		return -1, ds.ErrNotFound
@@ -321,7 +320,7 @@ func (mkv *Mkv) GetSize(key []byte) (int, error) {
 	}
 
 }
-
+*/
 func getOID(key ds.Key) []byte {
 	return hash128.Sum(key.Bytes())
 }
