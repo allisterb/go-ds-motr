@@ -183,8 +183,8 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 
 func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err error) {
 	oid := getOID(key)
-	d.Lock.Lock()
-	defer d.Lock.Unlock()
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
 	log.Debugf("Begin put key %v (OID %s) to LevelDB and Motr index %s.", key, getOIDstr(getOID(key)), d.Idx)
 	if emotr := mkv.Put(oid, value, true); emotr != nil {
 		log.Errorf("Error putting key %v (OID) %s to Motr index %s: %s.", key, getOIDstr(oid), d.Idx, emotr)
@@ -200,8 +200,8 @@ func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err 
 }
 
 func (d *MotrDatastore) Delete(ctx context.Context, key ds.Key) (err error) {
-	d.Lock.Lock()
-	defer d.Lock.Unlock()
+	d.Lock.RLock()
+	defer d.Lock.RUnlock()
 	if eldb := d.Ldb.Delete(key.Bytes(), &opt.WriteOptions{Sync: true}); eldb != nil {
 		log.Errorf("Error deleting key %v (OID %s) from LevelDB: %s", key, getOIDstr(getOID(key)), eldb)
 		return eldb
@@ -250,7 +250,7 @@ func (d *MotrDatastore) Close() error {
 }
 
 func (d *MotrDatastore) Batch(ctx context.Context) (ds.Batch, error) {
-	return nil, ds.ErrBatchUnsupported
+	return ds.NewBasicBatch(d), nil
 }
 
 func getOID(key ds.Key) []byte {

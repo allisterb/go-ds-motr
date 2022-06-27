@@ -264,6 +264,7 @@ func (mkv *Mkv) Has(key []byte) (bool, error) {
 	}
 }
 
+/*
 func (mkv *Mkv) GetSize(key []byte) (int, error) {
 	var k, v C.struct_m0_bufvec
 	if C.m0_bufvec_empty_alloc(&k, 1) != 0 {
@@ -301,9 +302,24 @@ func (mkv *Mkv) GetSize(key []byte) (int, error) {
 	} else if rcI != 0 {
 		return -1, ds.ErrNotFound
 	} else {
-		size := int(*v.ov_vec.v_count)
+		var size int = 0
+		if vPtr == nil {
+			size = 0
+		} else {
+			size = int(*v.ov_vec.v_count)
+		}
 		return size, nil
 	}
+}
+*/
+
+func (mkv *Mkv) GetSize(key []byte) (int, error) {
+	if v, eget := mkv.Get(key); eget != nil {
+		return 0, eget
+	} else {
+		return len(v), nil
+	}
+
 }
 
 func getOID(key ds.Key) []byte {
