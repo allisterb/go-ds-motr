@@ -26,7 +26,7 @@ sys     0m0.117s
 
 # Requirements
 1. Access to a Motr cluster and the `motr-devel` package installed. See the CORTX [repo](https://github.com/Seagate/cortx/releases).
-2. Go 1.17. 
+2. Go 1.17. See the official Go [site](https://go.dev/doc/install) for download and install instructions.
 
 # Installation
 1. Clone the go-ipfs repository: `git clone https://github.com/ipfs/go-ipfs.git`

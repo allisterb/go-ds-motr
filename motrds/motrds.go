@@ -250,7 +250,7 @@ func (d *MotrDatastore) Close() error {
 }
 
 func (d *MotrDatastore) Batch(ctx context.Context) (ds.Batch, error) {
-	return ds.NewBasicBatch(d), nil
+	return nil, ds.ErrBatchUnsupported
 }
 
 func getOID(key ds.Key) []byte {
