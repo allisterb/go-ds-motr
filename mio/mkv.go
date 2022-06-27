@@ -315,7 +315,7 @@ func (mkv *Mkv) GetSize(key []byte) (int, error) {
 
 func (mkv *Mkv) GetSize(key []byte) (int, error) {
 	if v, eget := mkv.Get(key); eget != nil {
-		return 0, eget
+		return -1, ds.ErrNotFound
 	} else {
 		return len(v), nil
 	}
