@@ -41,4 +41,16 @@ else
    wget --no-check-certificate https://go-ds-motr-bmark.us-southeast-1.linodeobjects.com/06%20Video%2002.webm
 fi
 
+echo Benchmarking adding files to IPFS...
 
+time ../go-ipfs/cmd/ipfs/ipfs add "01 Track01.flac"
+
+time ../go-ipfs/cmd/ipfs/ipfs add "02 Track02.flac"
+
+#time ../go-ipfs/cmd/ipfs/ipfs add "05 Video 01.webm"
+
+time ../go-ipfs/cmd/ipfs/ipfs add "03 Track03.flac"
+
+time ../go-ipfs/cmd/ipfs/ipfs add "04 Track04.flac"
+
+#time ../go-ipfs/cmd/ipfs/ipfs add "06 Video 02.webm"
