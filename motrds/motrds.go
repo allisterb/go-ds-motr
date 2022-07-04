@@ -180,8 +180,8 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 }
 
 func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err error) {
-	d.Lock.RLock()
-	defer d.Lock.RUnlock()
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
 	oid := getOID(key)
 	log.Debugf("Begin put key %v (OID %s) to LevelDB and Motr index %s.", key, getOIDstr(getOID(key)), d.Idx)
 	if emotr := mkv.Put(oid, value, true); emotr != nil {
