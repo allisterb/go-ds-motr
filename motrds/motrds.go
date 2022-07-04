@@ -242,9 +242,11 @@ func (d *MotrDatastore) DiskUsage(ctx context.Context) (uint64, error) {
 func (d *MotrDatastore) Close() error {
 	d.Lock.Lock()
 	defer d.Lock.Unlock()
-	eclose := d.Ldb.Close()
+	eclose := mkv.Close()
+	log.Infof("Close Motr key-value index %v: %s.", d.Idx, eclose)
+	eclose = d.Ldb.Close()
 	log.Infof("Close LevelDB database: %s.", eclose)
-	return mkv.Close()
+	return eclose
 }
 
 func (d *MotrDatastore) Batch(ctx context.Context) (ds.Batch, error) {
