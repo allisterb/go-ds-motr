@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
-	"os"
-	"path/filepath"
 	"sync"
 
 	ds "github.com/ipfs/go-datastore"
@@ -50,7 +48,7 @@ func NewMotrDatastore(conf Config) (*MotrDatastore, error) {
 		log.Errorf("Failed to initialize Motr client: %s.", einit)
 		return nil, einit
 	} else {
-		log.Infof("Initialized Motr client for local endpoint address: %s, HA address: %s, cluster profile FID: %s, local process FID: %s.", &conf.LocalAddr, &conf.HaxAddr, &conf.ProfileFid, &conf.LocalProcessFid)
+		log.Infof("Initialized Motr client for local endpoint address: %v, HA address: %v, cluster profile FID: %v, local process FID: %v.", &conf.LocalAddr, &conf.HaxAddr, &conf.ProfileFid, &conf.LocalProcessFid)
 	}
 
 	if eidx := mkv.Open(conf.Idx, false); eidx != nil {
@@ -182,9 +180,9 @@ func (d *MotrDatastore) Query(ctx context.Context, q query.Query) (query.Results
 }
 
 func (d *MotrDatastore) Put(ctx context.Context, key ds.Key, value []byte) (err error) {
-	oid := getOID(key)
 	d.Lock.RLock()
 	defer d.Lock.RUnlock()
+	oid := getOID(key)
 	log.Debugf("Begin put key %v (OID %s) to LevelDB and Motr index %s.", key, getOIDstr(getOID(key)), d.Idx)
 	if emotr := mkv.Put(oid, value, true); emotr != nil {
 		log.Errorf("Error putting key %v (OID) %s to Motr index %s: %s.", key, getOIDstr(oid), d.Idx, emotr)
@@ -218,27 +216,27 @@ func (d *MotrDatastore) Sync(ctx context.Context, prefix ds.Key) error {
 // DiskUsage returns the current disk size used by this levelDB.
 // For in-mem datastores, it will return 0.
 func (d *MotrDatastore) DiskUsage(ctx context.Context) (uint64, error) {
-	d.Lock.RLock()
-	defer d.Lock.RUnlock()
-	if d.LevelDBPath == "" { // in-mem
-		return 0, nil
-	}
-
-	var du uint64
-
-	err := filepath.Walk(d.LevelDBPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
+	/*
+		if d.LevelDBPath == "" { // in-mem
+			return 0, nil
 		}
-		du += uint64(info.Size())
-		return nil
-	})
 
-	if err != nil {
-		return 0, err
-	}
+		var du uint64
 
-	return du, nil
+		err := filepath.Walk(d.LevelDBPath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			du += uint64(info.Size())
+			return nil
+		})
+
+		if err != nil {
+			return 0, err
+		}
+	*/
+
+	return 0, nil
 }
 
 func (d *MotrDatastore) Close() error {
